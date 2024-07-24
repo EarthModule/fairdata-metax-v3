@@ -48,12 +48,10 @@ jobs:
       with:
         path: ./.venv
         key: venv-${{ hashFiles('poetry.lock') }}
-    - name: Activate virtualenv
-      run: |
-        . .venv/bin/activate
-        echo PATH=$PATH >> $GITHUB_ENV
     - name: Run migrations
-      run: python manage.py migrate
+      run: |
+        source .venv/bin/activate
+        python manage.py migrate
     - name: Run Tests
       run: |
         pytest -n 2 --ff

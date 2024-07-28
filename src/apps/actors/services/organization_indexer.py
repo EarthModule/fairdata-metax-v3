@@ -9,7 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.actors.models import Organization
-from metax_service.settings.components.actors import ORGANIZATION_SCHEME
+from metax_service.settings.components.actors import ORGANIZATION_SCHEME  # noqa: F401
 
 _logger = logging.getLogger(__name__)
 

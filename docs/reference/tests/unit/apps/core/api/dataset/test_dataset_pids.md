@@ -1,24 +1,24 @@
 # test_dataset_pids
 
-## test_create_harvested_dataset_with_PID
+## test_create_harvested_dataset_with_pid
 
-### :::tests.unit.apps.core.api.dataset.test_dataset_pids.test_create_harvested_dataset_with_PID
+### :::tests.unit.apps.core.api.dataset.test_dataset_pids.test_create_harvested_dataset_with_pid
 
-## test_create_harvested_dataset_without_PID
+## test_create_harvested_dataset_without_pid
 
-### :::tests.unit.apps.core.api.dataset.test_dataset_pids.test_create_harvested_dataset_without_PID
+### :::tests.unit.apps.core.api.dataset.test_dataset_pids.test_create_harvested_dataset_without_pid
 
-## test_create_dataset_with_PID
+## test_create_dataset_with_pid
 
-### :::tests.unit.apps.core.api.dataset.test_dataset_pids.test_create_dataset_with_PID
+### :::tests.unit.apps.core.api.dataset.test_dataset_pids.test_create_dataset_with_pid
 
-## test_create_dataset_with_URN
+## test_create_dataset_with_urn
 
-### :::tests.unit.apps.core.api.dataset.test_dataset_pids.test_create_dataset_with_URN
+### :::tests.unit.apps.core.api.dataset.test_dataset_pids.test_create_dataset_with_urn
 
-## test_create_dataset_with_DOI
+## test_create_dataset_with_doi
 
-### :::tests.unit.apps.core.api.dataset.test_dataset_pids.test_create_dataset_with_DOI
+### :::tests.unit.apps.core.api.dataset.test_dataset_pids.test_create_dataset_with_doi
 
 ## test_create_draft_dataset
 

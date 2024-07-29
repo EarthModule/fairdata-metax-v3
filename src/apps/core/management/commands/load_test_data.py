@@ -40,7 +40,7 @@ class Command(BaseCommand):
                 file_args={"*": {"size": 1024}},
                 storage_service="test",
             )
-            file_set = factories.FileSetFactory(
+            factories.FileSetFactory(
                 dataset=dataset, storage=files["storage"], files=files["files"].values()
             )
 

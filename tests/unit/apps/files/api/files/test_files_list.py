@@ -274,12 +274,3 @@ def test_files_list_invalid_storage_service(admin_client, file_tree_a):
 # ?delete files?
 
 # *test also with files in other dataset
-
-
-def test_files_get(admin_client, file_tree_a):
-    res = admin_client.get(
-        "/v3/files",
-        file_tree_a["params"],
-        content_type="application/json",
-    )
-    assert res.data["count"] == 16

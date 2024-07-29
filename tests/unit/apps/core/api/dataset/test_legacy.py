@@ -15,7 +15,7 @@ def test_create_legacy_dataset(legacy_dataset_a):
 
 def test_create_same_legacy_dataset_twice(admin_client, legacy_dataset_a, legacy_dataset_a_json):
     assert legacy_dataset_a.status_code == 201
-    res = admin_client.post(
+    admin_client.post(
         reverse("migrated-dataset-list"), legacy_dataset_a_json, content_type="application/json"
     )
     assert LegacyDataset.available_objects.count() == 1

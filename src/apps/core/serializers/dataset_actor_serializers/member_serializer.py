@@ -9,10 +9,9 @@ from rest_framework import serializers
 from apps.common.helpers import changed_fields, has_values
 from apps.common.serializers import CommonNestedModelSerializer
 from apps.common.serializers.serializers import StrictSerializer
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
-
-from dataclasses import dataclass
 
 
 @dataclass
@@ -39,7 +38,7 @@ class UUIDOrTagField(serializers.UUIDField):
         return super().to_internal_value(data)
 
     def to_representation(self, value):
-        if type(value) is str and value.startswith("#"):
+        if isinstance(value, str) and value.startswith("#"):
             return value
         return super().to_representation(value)
 

@@ -97,7 +97,7 @@ def test_create_dataset_with_DOI(admin_client, dataset_a_json, data_catalog, ref
     dataset.pop("persistent_identifier", None)
     res = admin_client.post("/v3/datasets", dataset, content_type="application/json")
     assert res.status_code == 201
-    assert res.json().pop("persistent_identifier", None) != None
+    assert res.json().pop("persistent_identifier", None) is not None
     ds_id = res.json()["id"]
     remote_resources = [
         {
@@ -131,11 +131,11 @@ def test_create_draft_dataset(admin_client, dataset_a_json, data_catalog, refere
     assert res.status_code == 201
     pid = res.json().get("persistent_identifier", None)
     ds_id = res.json().get("id", None)
-    assert pid == None
+    assert pid is None
 
     res2 = admin_client.post(f"/v3/datasets/{ds_id}/publish", content_type="application/json")
     pid2 = res2.json().get("persistent_identifier", None)
-    assert pid2 != None
+    assert pid2 is not None
 
 
 def mock_createURN_fail(self):
@@ -179,17 +179,17 @@ def test_new_version_has_no_pid(admin_client, dataset_a_json, data_catalog, refe
     assert res.status_code == 201
     pid = res.json().get("persistent_identifier", None)
     ds_id = res.json().get("id", None)
-    assert pid != None
+    assert pid is not None
 
     res2 = admin_client.post(f"/v3/datasets/{ds_id}/new-version")
     assert res2.status_code == 201
     pid2 = res2.json().get("persistent_identifier", None)
     ds_id2 = res2.json().get("id", None)
-    assert pid2 == None
+    assert pid2 is None
 
     res3 = admin_client.post(f"/v3/datasets/{ds_id2}/publish", content_type="application/json")
     pid3 = res3.json().get("persistent_identifier", None)
-    assert pid3 != None
+    assert pid3 is not None
     assert pid3 != pid
 
 

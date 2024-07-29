@@ -22,7 +22,7 @@ def _values_eql(a, b):
             return True
     except exceptions.ValidationError:
         return False
-    if type(a) == str and type(b) == str:
+    if isinstance(a, str) and isinstance(b, str):
         dt_a = parse_date(a) or parse_datetime(a)
         dt_b = parse_date(b) or parse_datetime(b)
         if dt_a and dt_b:

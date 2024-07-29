@@ -85,11 +85,6 @@ class BasicFileStorageAdmin(FileStorageProxyAdmin):
     pass
 
 
-@admin.register(ProjectFileStorage)
-class BasicFileStorageAdmin(FileStorageProxyAdmin):
-    pass
-
-
 @admin.register(IDAFileStorage)
 class IDAFileStorageAdmin(FileStorageProxyAdmin):
     pass

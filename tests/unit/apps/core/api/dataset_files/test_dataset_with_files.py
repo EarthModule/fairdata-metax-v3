@@ -185,7 +185,7 @@ def test_dataset_modify_dataset_with_files(
         "file_actions": [{"id": deep_file_tree["files"]["/dir3/sub1/file.txt"].id}],
     }
 
-    dataset_json = {k: v for k, v in res.data.items() if v != None}
+    dataset_json = {k: v for k, v in res.data.items() if v is not None}
 
     dataset_id = res.data["id"]
     urls = data_urls(dataset_id)

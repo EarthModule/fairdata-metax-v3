@@ -2,12 +2,12 @@ import logging
 
 import pytest
 from django.conf import settings as django_settings
-from django.urls import reverse
 from rest_framework.reverse import reverse
 from rest_framework.test import APIClient
+from http.cookies import SimpleCookie
 
 logger = logging.getLogger(__name__)
-from http.cookies import SimpleCookie
+
 
 
 @pytest.fixture

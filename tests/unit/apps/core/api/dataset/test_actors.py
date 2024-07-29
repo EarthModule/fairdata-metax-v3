@@ -750,7 +750,6 @@ def test_create_empty_actor(patch_dataset):
 
 
 def test_create_empty_person(patch_dataset):
-    org = {"organization": {"pref_label": {"en": "organization"}}}
     data = patch_dataset(
         {"actors": [{"person": {}}]},
         expected_status=400,

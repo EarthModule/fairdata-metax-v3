@@ -10,7 +10,6 @@ from rest_framework.test import APIClient
 from apps.core import factories
 from apps.core.models.data_catalog import DataCatalog
 
-from .json_models import DatasetActor, Organization, Person
 
 logger = logging.getLogger(__name__)
 

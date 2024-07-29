@@ -3,7 +3,6 @@ import logging
 
 import pytest
 from rest_framework.reverse import reverse
-from tests.utils import matchers
 
 from apps.core.models import DataCatalog
 

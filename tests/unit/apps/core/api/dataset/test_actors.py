@@ -1,17 +1,11 @@
-import json
 import logging
 import uuid
-from unittest.mock import ANY
 
 import pytest
 from django.test.client import Client
-from rest_framework.reverse import reverse
 from tests.utils import assert_nested_subdict, matchers
 
 from apps.actors.models import Organization
-from apps.core.models import OtherIdentifier
-from apps.core.models.concepts import IdentifierType
-from apps.files.factories import FileStorageFactory
 
 logger = logging.getLogger(__name__)
 

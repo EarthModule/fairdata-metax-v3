@@ -34,7 +34,7 @@ class UUIDOrTagField(serializers.UUIDField):
     """Field that accepts UUIDs or '#value' style strings."""
 
     def to_internal_value(self, data):
-        if type(data) is str and data.startswith("#"):
+        if isinstance(data, str) and data.startswith("#"):
             return data
         return super().to_internal_value(data)
 

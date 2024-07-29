@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import pytest
-from tests.utils import matchers
 
 from apps.core.factories import LocationFactory
 from apps.core.models import Theme

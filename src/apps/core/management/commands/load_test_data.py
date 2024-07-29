@@ -86,6 +86,6 @@ class Command(BaseCommand):
                 else:
                     logger.error(f"Catalog JSON not valid: {serializer.errors}")
 
-            logger.info(f"Created or updated test data-catalogs")
+            logger.info("Created or updated test data-catalogs")
 
             self.stdout.write("test catalogs created successfully")

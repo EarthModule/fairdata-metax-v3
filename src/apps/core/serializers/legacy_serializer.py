@@ -1,7 +1,6 @@
 import copy
 import logging
 
-from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.common.helpers import process_nested
@@ -28,10 +27,7 @@ from apps.core.serializers.provenance_serializers import ProvenanceModelSerializ
 logger = logging.getLogger(__name__)
 
 
-from django.utils.translation import gettext as _
-
 from apps.common.serializers.serializers import CommonModelSerializer
-from apps.core.models import LegacyDataset
 
 
 class LegacyDatasetModelSerializer(CommonModelSerializer):

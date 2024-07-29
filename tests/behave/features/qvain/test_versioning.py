@@ -5,7 +5,6 @@ from django.forms import model_to_dict
 from pytest_bdd import scenario, then, when
 
 from apps.core.models import Dataset
-from apps.users.models import MetaxUser
 
 logger = logging.getLogger(__name__)
 

@@ -20,7 +20,7 @@ def _values_eql(a, b):
         if isinstance(b, fields.Field):
             b.run_validation(data=a)
             return True
-    except exceptions.ValidationError as e:
+    except exceptions.ValidationError:
         return False
     if type(a) == str and type(b) == str:
         dt_a = parse_date(a) or parse_datetime(a)

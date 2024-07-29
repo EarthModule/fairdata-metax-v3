@@ -16,7 +16,7 @@ class _DummyPIDMSClient:
         # Empty constructor
         pass
 
-    def createURN(self, dataset_id):
+    def create_urn(self, dataset_id):
         dummy_pid = "urn:nbn:fi:fd-dummy-" + str(uuid.uuid4())
         return dummy_pid
 
@@ -27,7 +27,7 @@ class _PIDMSClient:
         self.pid_ms_apikey = settings.PID_MS_APIKEY
         self.etsin_url = settings.ETSIN_URL
 
-    def createURN(self, dataset_id):
+    def create_urn(self, dataset_id):
         payload = {
             "url": f"https://{self.etsin_url}/dataset/{dataset_id}",
             "type": "URN",

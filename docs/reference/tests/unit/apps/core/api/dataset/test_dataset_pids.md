@@ -24,17 +24,17 @@
 
 ### :::tests.unit.apps.core.api.dataset.test_dataset_pids.test_create_draft_dataset
 
-## mock_createURN_fail
+## mock_create_urn_fail
 
-### :::tests.unit.apps.core.api.dataset.test_dataset_pids.mock_createURN_fail
+### :::tests.unit.apps.core.api.dataset.test_dataset_pids.mock_create_urn_fail
 
-## patch_mock_createURN_fail
+## patch_mock_create_urn_fail
 
-### :::tests.unit.apps.core.api.dataset.test_dataset_pids.patch_mock_createURN_fail
+### :::tests.unit.apps.core.api.dataset.test_dataset_pids.patch_mock_create_urn_fail
 
-## test_create_dataset_with_failed_PID
+## test_create_dataset_with_failed_pid
 
-### :::tests.unit.apps.core.api.dataset.test_dataset_pids.test_create_dataset_with_failed_PID
+### :::tests.unit.apps.core.api.dataset.test_dataset_pids.test_create_dataset_with_failed_pid
 
 ## test_new_version_has_no_pid
 
@@ -63,4 +63,3 @@
 ## test_pid_cant_be_updated
 
 ### :::tests.unit.apps.core.api.dataset.test_dataset_pids.test_pid_cant_be_updated
-

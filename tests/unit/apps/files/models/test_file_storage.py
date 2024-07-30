@@ -42,7 +42,6 @@ def test_create_file_storage_project_without_project():
 
 def test_create_file_storage_ida():
     storage = FileStorage.objects.create(storage_service="ida", csc_project="x")
-    assert type(storage) == IDAFileStorage
     assert isinstance(storage, IDAFileStorage)
 
 

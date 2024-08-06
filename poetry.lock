@@ -670,13 +670,13 @@ files = [
 
 [[package]]
 name = "django"
-version = "4.2.11"
+version = "4.2.15"
 description = "A high-level Python web framework that encourages rapid development and clean, pragmatic design."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "Django-4.2.11-py3-none-any.whl", hash = "sha256:ddc24a0a8280a0430baa37aff11f28574720af05888c62b7cfe71d219f4599d3"},
-    {file = "Django-4.2.11.tar.gz", hash = "sha256:6e6ff3db2d8dd0c986b4eec8554c8e4f919b5c1ff62a5b4390c17aff2ed6e5c4"},
+    {file = "Django-4.2.15-py3-none-any.whl", hash = "sha256:61ee4a130efb8c451ef3467c67ca99fdce400fedd768634efc86a68c18d80d30"},
+    {file = "Django-4.2.15.tar.gz", hash = "sha256:c77f926b81129493961e19c0e02188f8d07c112a1162df69bfab178ae447f94a"},
 ]
 
 [package.dependencies]
@@ -691,45 +691,46 @@ bcrypt = ["bcrypt"]
 
 [[package]]
 name = "django-cachalot"
-version = "2.6.1"
+version = "2.6.2"
 description = "Caches your Django ORM queries and automatically invalidates them."
 optional = false
 python-versions = "*"
 files = [
-    {file = "django-cachalot-2.6.1.tar.gz", hash = "sha256:6772d2d2cc2efa8b6484b242567a5a01847f8e1e8c8ef59a7b9a367b2edfa929"},
-    {file = "django_cachalot-2.6.1-py3-none-any.whl", hash = "sha256:442ad5321e646ce33ec7825c289476373b8926d23b4c1b8b9659879306e44748"},
+    {file = "django-cachalot-2.6.2.tar.gz", hash = "sha256:1ea598845d0dd522173274bf2659ba3d962b3c69309874bf1fc73838fb1cd39c"},
+    {file = "django_cachalot-2.6.2-py3-none-any.whl", hash = "sha256:40bb42f4cca185f59d28b4cd9155426f620f0d16210619d62058f095f8f2a14b"},
 ]
 
 [package.dependencies]
-Django = ">=3.2,<4.3"
+Django = ">=3.2,<5.1"
 
 [[package]]
 name = "django-cors-headers"
-version = "4.3.0"
+version = "4.4.0"
 description = "django-cors-headers is a Django application for handling the server headers required for Cross-Origin Resource Sharing (CORS)."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "django_cors_headers-4.3.0-py3-none-any.whl", hash = "sha256:bd36c7aea0d070e462f3383f0dc9ef717e5fdc2b10a99c98c285f16da84ffba2"},
-    {file = "django_cors_headers-4.3.0.tar.gz", hash = "sha256:25aabc94d4837678c1edf442c7f68a5f5fd151f6767b0e0b01c61a2179d02711"},
+    {file = "django_cors_headers-4.4.0-py3-none-any.whl", hash = "sha256:5c6e3b7fe870876a1efdfeb4f433782c3524078fa0dc9e0195f6706ce7a242f6"},
+    {file = "django_cors_headers-4.4.0.tar.gz", hash = "sha256:92cf4633e22af67a230a1456cb1b7a02bb213d6536d2dcb2a4a24092ea9cebc2"},
 ]
 
 [package.dependencies]
-Django = ">=3.2"
+asgiref = ">=3.6"
+django = ">=3.2"
 
 [[package]]
 name = "django-debug-toolbar"
-version = "4.2.0"
+version = "4.4.6"
 description = "A configurable set of panels that display various debug information about the current request/response."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "django_debug_toolbar-4.2.0-py3-none-any.whl", hash = "sha256:af99128c06e8e794479e65ab62cc6c7d1e74e1c19beb44dcbf9bad7a9c017327"},
-    {file = "django_debug_toolbar-4.2.0.tar.gz", hash = "sha256:bc7fdaafafcdedefcc67a4a5ad9dac96efd6e41db15bc74d402a54a2ba4854dc"},
+    {file = "django_debug_toolbar-4.4.6-py3-none-any.whl", hash = "sha256:3beb671c9ec44ffb817fad2780667f172bd1c067dbcabad6268ce39a81335f45"},
+    {file = "django_debug_toolbar-4.4.6.tar.gz", hash = "sha256:36e421cb908c2f0675e07f9f41e3d1d8618dc386392ec82d23bcfcd5d29c7044"},
 ]
 
 [package.dependencies]
-django = ">=3.2.4"
+django = ">=4.2.9"
 sqlparse = ">=0.2"
 
 [[package]]
@@ -748,57 +749,56 @@ Django = ">=3.2"
 
 [[package]]
 name = "django-filter"
-version = "22.1"
+version = "24.3"
 description = "Django-filter is a reusable Django application for allowing users to filter querysets dynamically."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "django-filter-22.1.tar.gz", hash = "sha256:ed473b76e84f7e83b2511bb2050c3efb36d135207d0128dfe3ae4b36e3594ba5"},
-    {file = "django_filter-22.1-py3-none-any.whl", hash = "sha256:ed429e34760127e3520a67f415bec4c905d4649fbe45d0d6da37e6ff5e0287eb"},
+    {file = "django_filter-24.3-py3-none-any.whl", hash = "sha256:c4852822928ce17fb699bcfccd644b3574f1a2d80aeb2b4ff4f16b02dd49dc64"},
+    {file = "django_filter-24.3.tar.gz", hash = "sha256:d8ccaf6732afd21ca0542f6733b11591030fa98669f8d15599b358e24a2cd9c3"},
 ]
 
 [package.dependencies]
-Django = ">=3.2"
+Django = ">=4.2"
 
 [[package]]
 name = "django-hijack"
-version = "3.4.2"
-description = "django-hijack allows superusers to hijack (=login as) and work on behalf of another user."
+version = "3.6.0"
+description = "Enable users to hijack (=login as) and work on behalf of another user."
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
-    {file = "django-hijack-3.4.2.tar.gz", hash = "sha256:b2628a4fbb3bf92aaba88e661bdfbb7c59a95350efedae8852a41e07e7245326"},
-    {file = "django_hijack-3.4.2-py3-none-any.whl", hash = "sha256:bf8f8aa5c2678dc0a5dc43be1d48406459a47014f12682c2986658fa243ddae8"},
+    {file = "django_hijack-3.6.0-py3-none-any.whl", hash = "sha256:698bbe2bcc95c240e4706d465c3ea6c78c66cdcef357802d171ba7036079b075"},
+    {file = "django_hijack-3.6.0.tar.gz", hash = "sha256:4554f7ceb1a5b39aecacd06fee08933a90a357a9c7eeb018d9483d25938dc637"},
 ]
 
 [package.dependencies]
-django = ">=2.2"
+django = ">=4.2"
 
 [package.extras]
+docs = ["mkdocs (==1.6.0)"]
+lint = ["msgcheck (==4.0.0)", "ruff (==0.5.0)"]
 test = ["pytest", "pytest-cov", "pytest-django"]
 
 [[package]]
 name = "django-json-widget"
-version = "1.1.1"
+version = "2.0.1"
 description = "Django json widget is an alternative widget that makes it easy to edit the jsonfield field of django."
 optional = false
 python-versions = "*"
 files = [
-    {file = "django-json-widget-1.1.1.tar.gz", hash = "sha256:ec948a4c379687f9c854748ba540fdbeb1b1730846ca953f186818521de7e696"},
+    {file = "django-json-widget-2.0.1.tar.gz", hash = "sha256:adb4cab17fe5a04139037d7d84725369530ef35b912c3790d3a7b13f99351358"},
 ]
-
-[package.dependencies]
-future = "*"
 
 [[package]]
 name = "django-model-utils"
-version = "4.3.1"
+version = "4.5.1"
 description = "Django model mixins and utilities"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "django-model-utils-4.3.1.tar.gz", hash = "sha256:2e2e4f13e4f14613134a9777db7ad4265f59a1d8f1384107bcaa3028fe3c87c1"},
-    {file = "django_model_utils-4.3.1-py3-none-any.whl", hash = "sha256:8c0b0177bab909a8635b602d960daa67e80607aa5469217857271a60726d7a4b"},
+    {file = "django_model_utils-4.5.1-py3-none-any.whl", hash = "sha256:f1141fc71796242edeffed5ad53a8cc57f00d345eb5a3a63e3f69401cd562ee2"},
+    {file = "django_model_utils-4.5.1.tar.gz", hash = "sha256:1220f22d9a467d53a1e0f4cda4857df0b2f757edf9a29955c42461988caa648a"},
 ]
 
 [package.dependencies]
@@ -820,29 +820,27 @@ Django = ">=2.1"
 
 [[package]]
 name = "django-rest-knox"
-version = "4.2.0"
+version = "5.0.1"
 description = "Authentication for django rest framework"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "django-rest-knox-4.2.0.tar.gz", hash = "sha256:4595f1dc23d6e41af7939e5f2d8fdaf6ade0a74a656218e7b56683db5566fcc9"},
-    {file = "django_rest_knox-4.2.0-py3-none-any.whl", hash = "sha256:62b8e374a44cd4e9617eaefe27c915b301bf224fa6550633d3013d3f9f415113"},
+    {file = "django-rest-knox-5.0.1.tar.gz", hash = "sha256:69833d348d95a2af09671ce5d1cf2fb40e6a3299aba6a204f5bbc95caa957fd4"},
 ]
 
 [package.dependencies]
-cryptography = "*"
 django = ">=3.2"
 djangorestframework = "*"
 
 [[package]]
 name = "django-silk"
-version = "5.0.4"
+version = "5.1.0"
 description = "Silky smooth profiling for the Django Framework"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "django-silk-5.0.4.tar.gz", hash = "sha256:8cbfbc647d182527726d8d52d3fcfa193f4d250f21406c3fb1062efa6fb95c63"},
-    {file = "django_silk-5.0.4-py3-none-any.whl", hash = "sha256:b345d3973d1d382e09735eb525eaf3eebd3edee9a69d1003eb9b01badb2438db"},
+    {file = "django-silk-5.1.0.tar.gz", hash = "sha256:34abb5852315f0f3303d45b7ab4a2caa9cf670102b614dbb2ac40a5d2d5cbffb"},
+    {file = "django_silk-5.1.0-py3-none-any.whl", hash = "sha256:35a2051672b0be86af4ce734a0df0b6674c8c63f2df730b3756ec6e52923707d"},
 ]
 
 [package.dependencies]
@@ -853,14 +851,17 @@ sqlparse = "*"
 
 [[package]]
 name = "django-simple-history"
-version = "3.4.0"
+version = "3.7.0"
 description = "Store model history and view/revert changes from admin site."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "django-simple-history-3.4.0.tar.gz", hash = "sha256:19bd1a87e1e2eba34dfd43eab1fcf2da5752221f343232f2372b2121c7e3b97d"},
-    {file = "django_simple_history-3.4.0-py3-none-any.whl", hash = "sha256:992dcca3cddc0b67b470fc91f77292e2d2a6010d37c9eac3536e9d80e8754032"},
+    {file = "django_simple_history-3.7.0-py3-none-any.whl", hash = "sha256:282cb2c4aa63f51547f17da7f2130abaa81ba01694676d19b88d52c94a57a52c"},
+    {file = "django_simple_history-3.7.0.tar.gz", hash = "sha256:ac3b7ca8b0d33f7ea6be8fe7fc98cf43415efa500ff5dfe736fbd1ebc0cf39f9"},
 ]
+
+[package.dependencies]
+django = ">=4.2"
 
 [[package]]
 name = "django-split-settings"
@@ -914,18 +915,18 @@ files = [
 
 [[package]]
 name = "djangorestframework"
-version = "3.14.0"
+version = "3.15.2"
 description = "Web APIs for Django, made easy."
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.8"
 files = [
-    {file = "djangorestframework-3.14.0-py3-none-any.whl", hash = "sha256:eb63f58c9f218e1a7d064d17a70751f528ed4e1d35547fdade9aaf4cd103fd08"},
-    {file = "djangorestframework-3.14.0.tar.gz", hash = "sha256:579a333e6256b09489cbe0a067e66abe55c6595d8926be6b99423786334350c8"},
+    {file = "djangorestframework-3.15.2-py3-none-any.whl", hash = "sha256:2b8871b062ba1aefc2de01f773875441a961fefbf79f5eed1e32b2f096944b20"},
+    {file = "djangorestframework-3.15.2.tar.gz", hash = "sha256:36fe88cd2d6c6bec23dca9804bab2ba5517a8bb9d8f47ebc68981b56840107ad"},
 ]
 
 [package.dependencies]
-django = ">=3.0"
-pytz = "*"
+"backports.zoneinfo" = {version = "*", markers = "python_version < \"3.9\""}
+django = ">=4.2"
 
 [[package]]
 name = "drf-access-policy"
@@ -1101,16 +1102,6 @@ files = [
 docs = ["furo (>=2023.9.10)", "sphinx (>=7.2.6)", "sphinx-autodoc-typehints (>=1.25.2)"]
 testing = ["covdefaults (>=2.3)", "coverage (>=7.3.2)", "diff-cover (>=8.0.1)", "pytest (>=7.4.3)", "pytest-asyncio (>=0.21)", "pytest-cov (>=4.1)", "pytest-mock (>=3.12)", "pytest-timeout (>=2.2)", "virtualenv (>=20.26.2)"]
 typing = ["typing-extensions (>=4.8)"]
-
-[[package]]
-name = "future"
-version = "0.18.3"
-description = "Clean single-source support for Python 3 and 2"
-optional = false
-python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
-files = [
-    {file = "future-0.18.3.tar.gz", hash = "sha256:34a17436ed1e96697a86f9de3d15a3b0be01d8bc8de9c1dffd59fb8234ed5307"},
-]
 
 [[package]]
 name = "ghp-import"
@@ -3021,4 +3012,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8.10"
-content-hash = "e8bdedbbe17860e30e908fafc72b565b6ed50c2f985d979e125f46a50f6b1572"
+content-hash = "2a544c12c64c2e538d5210b9c76fe969fd6ba1679c30384f99007d39fe55998e"

@@ -47,7 +47,7 @@ pymemcache = "^4.0.0"
 django-cachalot = "^2.6.3"
 django-watson = "^1.6.3"
 coreapi = "^2.3.3"
-mkdocstrings = {extras = ["python"], version = "^0.22.0"}
+mkdocstrings = {extras = ["python"], version = "^0.25.2"}
 pyyaml = "^6.0.2"
 drf-access-policy = "^1.5.0"
 django-hijack = "^3.6.0"

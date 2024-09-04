@@ -9,6 +9,8 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
+
+import json
 import os
 import sys
 from datetime import timedelta
@@ -272,6 +274,7 @@ SWAGGER_SETTINGS = {
     "SECURITY_DEFINITIONS": {
         "Bearer": {"type": "apiKey", "name": "Authorization", "in": "header"}
     },
+    "VALIDATOR_URL": None,
 }
 REDOC_SETTINGS = {"HIDE_HOSTNAME": True}
 
@@ -296,6 +299,9 @@ LEGACY_FILE_STORAGE_TO_V3_STORAGE_SERVICE = {
     "urn:nbn:fi:att:file-storage-pas": "pas",
     "pid:urn:storageidentifier1": "legacy-test-storage-1",
 }
+V3_STORAGE_SERVICE_TO_LEGACY_FILE_STORAGE = {
+    value: key for key, value in LEGACY_FILE_STORAGE_TO_V3_STORAGE_SERVICE.items()
+}
 
 # Define supported storage services and their FileStorage proxy class
 STORAGE_SERVICE_FILE_STORAGES = {
@@ -304,6 +310,9 @@ STORAGE_SERVICE_FILE_STORAGES = {
     "pas": "ProjectFileStorage",
     "legacy-test-storage-1": "ProjectFileStorage",
 }
+
+# User groups that can see all projects in storage service
+PROJECT_STORAGE_SERVICE_USER_GROUPS = {"ida", "pas"}
 
 
 # Profiling
@@ -384,3 +393,6 @@ METAX_V2_PASSWORD = env.str("METAX_V2_PASSWORD", None)
 # Ensure redirect v1/v2 -> v3
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Metrics
+METRICS_REPORT_URL = env.str("METRICS_REPORT_URL", None)

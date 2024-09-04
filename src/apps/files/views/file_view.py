@@ -12,6 +12,7 @@ from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import F, Q, QuerySet, Value
 from django.db.models.functions import Concat
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 from drf_yasg.utils import swagger_auto_schema
@@ -34,7 +35,8 @@ from apps.files.serializers.file_bulk_serializer import (
     FileBulkReturnValueSerializer,
     FileBulkSerializer,
 )
-from apps.files.signals import pre_files_deleted
+from apps.files.serializers.legacy_files_serializer import LegacyFilesSerializer
+from apps.files.signals import pre_files_deleted, sync_files
 
 logger = logging.getLogger(__name__)
 
@@ -183,6 +185,13 @@ class FileBulkQuerySerializer(serializers.Serializer):
     )
 
 
+bulk_response_schemas = {
+    200: FileBulkReturnValueSerializer(),
+    207: FileBulkReturnValueSerializer(),
+    400: FileBulkReturnValueSerializer(),
+}
+
+
 class FileViewSet(BaseFileViewSet):
     http_method_names = ["get", "post", "patch", "put", "delete"]
 
@@ -283,13 +292,20 @@ class FileViewSet(BaseFileViewSet):
         serializer.save()
 
         status = 200
-        if serializer.data.get("failed") and not ignore_errors:
-            status = 400
+        if serializer.data.get("failed"):
+            if serializer.data.get("success"):
+                status = 207  # Multi-status, both successes and failures
+            else:
+                status = 400  # Everything failed
+
+        if serializer.instance:
+            sync_files.send(sender=File, actions=serializer.instance)
+
         return Response(serializer.data, status=status)
 
     @swagger_auto_schema(
         request_body=FileBulkSerializer(action=BulkAction.INSERT),
-        responses={200: FileBulkReturnValueSerializer()},
+        responses=bulk_response_schemas,
     )
     @action(detail=False, methods=["post"], url_path="post-many")
     def post_many(self, request):
@@ -297,7 +313,7 @@ class FileViewSet(BaseFileViewSet):
 
     @swagger_auto_schema(
         request_body=FileBulkSerializer(action=BulkAction.UPDATE),
-        responses={200: FileBulkReturnValueSerializer()},
+        responses=bulk_response_schemas,
     )
     @action(detail=False, methods=["post"], url_path="patch-many")
     def patch_many(self, request):
@@ -305,7 +321,7 @@ class FileViewSet(BaseFileViewSet):
 
     @swagger_auto_schema(
         request_body=FileBulkSerializer(action=BulkAction.UPSERT),
-        responses={200: FileBulkReturnValueSerializer()},
+        responses=bulk_response_schemas,
     )
     @action(detail=False, methods=["post"], url_path="put-many")
     def put_many(self, request):
@@ -313,7 +329,7 @@ class FileViewSet(BaseFileViewSet):
 
     @swagger_auto_schema(
         request_body=FileBulkSerializer(action=BulkAction.DELETE),
-        responses={200: FileBulkReturnValueSerializer()},
+        responses=bulk_response_schemas,
     )
     @action(detail=False, methods=["post"], url_path="delete-many")
     def delete_many(self, request):
@@ -324,7 +340,7 @@ class FileViewSet(BaseFileViewSet):
         manual_parameters=get_filter_openapi_parameters(FileDeleteListFilterSet),
         responses={200: DeleteListReturnValueSerializer()},
     )
-    def destroy_list(self, *args, **kwargs):
+    def destroy_list(self, request):
         """Delete files matching query parameters.
 
         The `csc_project` parameter is required. If no `storage_service` is defined,
@@ -343,13 +359,62 @@ class FileViewSet(BaseFileViewSet):
         queryset = self.filter_queryset(queryset)
 
         count = queryset.count()
+        if count > 0:
+            pre_files_deleted.send(sender=File, queryset=queryset)
+            files_to_sync = None
+            if not request.user.is_v2_migration:
+                # Collect files before they are potentially deleted from DB
+                files_to_sync = list(queryset.all())
 
-        pre_files_deleted.send(sender=File, queryset=queryset)
+            queryset.delete()
+            if files_to_sync:
+                # Sync removals to V2.
+                # Flush is not currently implemented in sync,
+                # soft delete is used instead.
+                now = timezone.now()
+                if not flush:
+                    # When not flushing, get removal timestamp from
+                    # first removed file and use it for all files.
+                    first = files_to_sync[0]
+                    first.refresh_from_db()
+                    now = first.removed
 
-        queryset.delete()
-
+                for file in files_to_sync:
+                    file.removed = now
+                sync_files.send(
+                    sender=File,
+                    actions=[
+                        {"action": BulkAction.DELETE, "object": file} for file in files_to_sync
+                    ],
+                )
         return Response(DeleteListReturnValueSerializer(instance={"count": count}).data, 200)
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        sync_files.send(
+            sender=File,
+            actions=[{"action": BulkAction.INSERT, "object": serializer.instance}],
+        )
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        sync_files.send(
+            sender=File,
+            actions=[{"action": BulkAction.UPDATE, "object": serializer.instance}],
+        )
 
     def perform_destroy(self, instance):
         pre_files_deleted.send(sender=File, queryset=File.objects.filter(id=instance.id))
-        return super().perform_destroy(instance)
+        super().perform_destroy(instance)
+        sync_files.send(
+            sender=File,
+            actions=[{"action": BulkAction.DELETE, "object": instance}],
+        )
+
+    @swagger_auto_schema(request_body=LegacyFilesSerializer())
+    @action(detail=False, methods=["post"], url_path="from-legacy")
+    def from_legacy(self, request):
+        serializer = LegacyFilesSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        counts = serializer.save()
+        return Response(counts.__dict__, status=200)

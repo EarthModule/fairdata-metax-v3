@@ -3,13 +3,13 @@ import logging
 from django.contrib.postgres.fields import ArrayField, HStoreField
 from django.core.validators import MinLengthValidator
 from django.db import models
+from django.db.models import prefetch_related_objects
 from django.db.models.signals import post_delete
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext as _
 from model_utils import FieldTracker
 from rest_framework.exceptions import ValidationError
-from simple_history.models import HistoricalRecords
 from typing_extensions import Self
 
 from apps.common.copier import ModelCopier
@@ -17,7 +17,8 @@ from apps.common.exceptions import TopLevelValidationError
 from apps.common.helpers import datetime_to_date
 from apps.common.history import SnapshotHistoricalRecords
 from apps.common.models import AbstractBaseModel
-from apps.core.models.access_rights import AccessRights
+from apps.core.models.access_rights import AccessRights, AccessTypeChoices
+from apps.core.models.catalog_record.dataset_permissions import DatasetPermissions
 from apps.core.models.concepts import FieldOfScience, Language, ResearchInfra, Theme
 from apps.core.models.data_catalog import DataCatalog
 from apps.core.models.mixins import V2DatasetMixin
@@ -64,8 +65,6 @@ class Dataset(V2DatasetMixin, CatalogRecord):
         theme (models.ManyToManyField): Keyword ManyToMany relation
         title (HStoreField): Title of the dataset
     """
-
-    history = HistoricalRecords()
 
     # Model nested copying configuration
     copier = ModelCopier(
@@ -154,8 +153,12 @@ class Dataset(V2DatasetMixin, CatalogRecord):
     dataset_versions = models.ForeignKey(
         DatasetVersions, related_name="datasets", on_delete=models.SET_NULL, null=True
     )
+    permissions = models.ForeignKey(
+        DatasetPermissions, related_name="datasets", on_delete=models.SET_NULL, null=True
+    )
     history = SnapshotHistoricalRecords(
-        m2m_fields=(language, theme, field_of_science, infrastructure, other_identifiers)
+        m2m_fields=(language, theme, field_of_science, infrastructure, other_identifiers),
+        excluded_fields=["permissions"],
     )
 
     class CumulativeState(models.IntegerChoices):
@@ -179,6 +182,97 @@ class Dataset(V2DatasetMixin, CatalogRecord):
         "self", related_name="next_draft", on_delete=models.CASCADE, null=True, blank=True
     )
 
+    is_prefetched = False  # Should be set to True when using prefetch_related
+
+    # Fields that should be prefetched with prefetch_related
+    common_prefetch_fields = (
+        "access_rights__access_type",
+        "access_rights__license__reference",
+        "access_rights__license",
+        "access_rights__restriction_grounds",
+        "access_rights",
+        "actors__organization__homepage",
+        "actors__organization__parent__homepage",
+        "actors__organization__parent",
+        "actors__organization",
+        "actors__person__homepage",
+        "actors__person",
+        "actors",
+        "data_catalog",
+        "dataset_versions",
+        "draft_of",
+        "field_of_science",
+        "file_set",
+        "infrastructure",
+        "language",
+        "metadata_owner__user",
+        "metadata_owner",
+        "next_draft",
+        "other_identifiers__identifier_type",
+        "other_identifiers",
+        "permissions",
+        "permissions__editors",
+        "preservation",
+        "projects__funding__funder__funder_type",
+        "projects__funding__funder__organization__homepage",
+        "projects__funding__funder__organization__parent__homepage",
+        "projects__funding__funder__organization__parent",
+        "projects__funding__funder__organization",
+        "projects__funding__funder",
+        "projects__funding",
+        "projects__participating_organizations__homepage",
+        "projects__participating_organizations__parent__homepage",
+        "projects",
+        "provenance__event_outcome",
+        "provenance__is_associated_with__organization__homepage",
+        "provenance__is_associated_with__organization__parent__homepage",
+        "provenance__is_associated_with__organization__parent",
+        "provenance__is_associated_with__organization",
+        "provenance__is_associated_with__person__homepage",
+        "provenance__is_associated_with__person",
+        "provenance__is_associated_with",
+        "provenance__lifecycle_event",
+        "provenance__spatial__reference",
+        "provenance__spatial",
+        "provenance__temporal",
+        "provenance__used_entity__type",
+        "provenance__used_entity",
+        "provenance__variables__concept",
+        "provenance__variables__universe",
+        "provenance__variables",
+        "provenance",
+        "relation__entity__type",
+        "relation__entity",
+        "relation__relation_type",
+        "relation",
+        "remote_resources__file_type",
+        "remote_resources__use_category",
+        "remote_resources",
+        "spatial__provenance",
+        "spatial__reference",
+        "spatial",
+        "temporal",
+        "theme",
+    )
+
+    dataset_versions_prefetch_fields = (
+        "draft_of",
+        "next_draft",
+        "permissions",
+        "permissions__editors",
+        "metadata_owner",
+        "metadata_owner__user",
+    )
+
+    is_legacy = models.BooleanField(
+        default=False, help_text="Is the dataset migrated from legacy Metax"
+    )
+
+    def __init__(self, *args, **kwargs):
+        if kwargs.pop("_saving_legacy", None):
+            self._saving_legacy = True
+        super().__init__(*args, **kwargs)
+
     def has_permission_to_edit(self, user: MetaxUser):
         if user.is_superuser:
             return True
@@ -187,6 +281,8 @@ class Dataset(V2DatasetMixin, CatalogRecord):
         elif user == self.system_creator:
             return True
         elif self.metadata_owner and self.metadata_owner.user == user:
+            return True
+        elif self.permissions and self.permissions.editors.contains(user):
             return True
         elif self.data_catalog and DataCatalogAccessPolicy().query_object_permission(
             user=user, object=self.data_catalog, action="<op:admin_dataset>"
@@ -216,10 +312,6 @@ class Dataset(V2DatasetMixin, CatalogRecord):
     @cached_property
     def first_published_revision(self):
         return self.get_revision(publication_number=1)
-
-    @property
-    def is_legacy(self):
-        return getattr(self, "legacydataset", None)
 
     @property
     def has_files(self):
@@ -556,6 +648,8 @@ class Dataset(V2DatasetMixin, CatalogRecord):
         """
         errors = {}
         actor_errors = []
+        access_rights_errors = []
+
         if not self.data_catalog:
             errors["data_catalog"] = _("Dataset has to have a data catalog when publishing.")
         if require_pid and not self.persistent_identifier:
@@ -567,19 +661,59 @@ class Dataset(V2DatasetMixin, CatalogRecord):
         if not self.description:
             errors["description"] = _("Dataset has to have a description when publishing.")
 
+        # Count roles
+        creator_count = 0
+        publisher_count = 0
+        prefetch_related_objects([self], "actors", "actors__person")  # cache actors
+        missing_roles = False
+        for actor in self.actors.all():
+            if not actor.roles:
+                missing_roles = True
+            if "publisher" in actor.roles:
+                publisher_count += 1
+            if "creator" in actor.roles:
+                creator_count += 1
+
+        if missing_roles:
+            actor_errors.append(
+                _("All actors in a published dataset should have at least one role.")
+            )
+
         # Some legacy/harvested datasets are missing creator or publisher
+        # Some legacy datasets are also missing license or restriction grounds
         is_harvested = self.data_catalog and self.data_catalog.harvested
         if not (self.is_legacy and is_harvested):
-            if self.actors.filter(roles__contains=["creator"]).count() <= 0:
+            # Creator required
+            if creator_count == 0:
                 actor_errors.append(_("An actor with creator role is required."))
-                errors["actors"] = actor_errors
-        if not self.is_legacy:
-            if self.actors.filter(roles__contains=["publisher"]).count() != 1:
-                actor_errors.append(_("Exactly one actor with publisher role is required."))
-                errors["actors"] = actor_errors
-            if self.access_rights and not self.access_rights.license.exists():
-                errors["access_rights"] = _("Dataset has to have a license when publishing.")
 
+        if not self.is_legacy:
+            if publisher_count != 1:
+                actor_errors.append(_("Exactly one actor with publisher role is required."))
+            if self.access_rights and not self.access_rights.license.exists():
+                access_rights_errors.append(_("Dataset has to have a license when publishing."))
+                errors["access_rights"] = access_rights_errors
+            if (
+                self.access_rights
+                and self.access_rights.access_type.url != AccessTypeChoices.OPEN
+                and not self.access_rights.restriction_grounds.exists()
+            ):
+                access_rights_errors.append(
+                    _(
+                        "Dataset access rights has to contain restriction grounds if access type is not 'Open'."
+                    )
+                )
+                errors["access_rights"] = access_rights_errors
+            if (
+                self.access_rights
+                and self.access_rights.access_type.url == AccessTypeChoices.OPEN
+                and self.access_rights.restriction_grounds.exists()
+            ):
+                access_rights_errors.append(_("Open datasets do not accept restriction grounds."))
+                errors["access_rights"] = access_rights_errors
+
+        if actor_errors:
+            errors["actors"] = actor_errors
         if errors:
             raise ValidationError(errors)
 
@@ -634,11 +768,17 @@ class Dataset(V2DatasetMixin, CatalogRecord):
         if fileset := getattr(self, "file_set", None):
             self.validate_allow_storage_service(fileset.storage_service)
 
+    def ensure_prefetch(self):
+        """Ensure related fields have been prefetched."""
+        if not self.is_prefetched:
+            models.prefetch_related_objects([self], *self.common_prefetch_fields)
+            self.is_prefetched = True
+
     def save(self, *args, **kwargs):
         """Saves the dataset and increments the draft or published revision number as needed."""
         self.validate_unique_fields()
         self.validate_catalog()
-        if not getattr(self, "saving_legacy", False):
+        if not getattr(self, "_saving_legacy", False):
             self._update_cumulative_state()
 
         # Prevent changing state of a published dataset
@@ -647,8 +787,10 @@ class Dataset(V2DatasetMixin, CatalogRecord):
             if previous_state == self.StateChoices.PUBLISHED and self.state != previous_state:
                 raise ValidationError({"state": _("Cannot change value into non-published.")})
 
-        if not self.dataset_versions:
+        if not self.dataset_versions_id:
             self.dataset_versions = DatasetVersions.objects.create()
+        if not self.permissions_id:
+            self.permissions = DatasetPermissions.objects.create()
         if self.state == self.StateChoices.DRAFT:
             self.draft_revision += 1
         elif self.state == self.StateChoices.PUBLISHED:
@@ -658,6 +800,7 @@ class Dataset(V2DatasetMixin, CatalogRecord):
 
         self.set_update_reason(f"{self.state}-{self.published_revision}.{self.draft_revision}")
         super().save(*args, **kwargs)
+        self.is_prefetched = False  # Prefetch again after save
         if hasattr(self, "file_set"):
             self.file_set.update_published()
 

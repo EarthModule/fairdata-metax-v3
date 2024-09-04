@@ -3,7 +3,7 @@
 from typing import Dict
 
 import pytest
-from tests.utils import assert_nested_subdict
+from tests.utils import assert_nested_subdict, matchers
 
 from apps.core import factories
 
@@ -38,6 +38,25 @@ def test_dataset_files_post_empty(admin_client, deep_file_tree, data_urls):
     res = admin_client.get(urls["directories"])
     assert res.status_code == 200
     assert res.json()["count"] == 0
+
+
+def test_dataset_files_project_without_files(user_client, user, data_urls):
+    user.csc_projects = ["user_project"]
+    user.save()
+
+    # User can create an empty (no files) IDA FileStorage if they are a member of the csc_project
+    dataset = factories.DatasetFactory(metadata_owner=factories.MetadataProviderFactory(user=user))
+    actions = {"storage_service": "ida", "csc_project": "user_project"}
+    urls = data_urls(dataset)
+    res = user_client.patch(urls["dataset"], {"fileset": actions}, content_type="application/json")
+    assert res.status_code == 200
+
+    # Forbid creating IDA FileStorage if user is not a member of csc_project
+    dataset = factories.DatasetFactory(metadata_owner=factories.MetadataProviderFactory(user=user))
+    actions = {"storage_service": "ida", "csc_project": "userdoesnothavethisproject"}
+    urls = data_urls(dataset)
+    res = user_client.patch(urls["dataset"], {"fileset": actions}, content_type="application/json")
+    assert res.status_code == 400
 
 
 def test_dataset_files_post_multiple_file_sets(admin_client, deep_file_tree, data_urls):
@@ -184,18 +203,22 @@ def test_dataset_files_post_noop_remove(admin_client, deep_file_tree, data_urls)
 
 
 @pytest.fixture
-def dataset_with_metadata(admin_client, deep_file_tree, data_urls) -> Dict:
+def dataset_with_metadata(admin_client, deep_file_tree, data_urls, use_category_json) -> Dict:
     dataset = factories.DatasetFactory()
+
     actions = {
         **deep_file_tree["params"],
         "directory_actions": [
-            {"pathname": "/dir2/subdir1/", "dataset_metadata": {"title": "directory title"}},
+            {
+                "pathname": "/dir2/subdir1/",
+                "dataset_metadata": {"title": "directory title", **use_category_json},
+            },
         ],
         "file_actions": [
             {
                 "id": deep_file_tree["files"]["/dir2/subdir1/file2.txt"].id,
                 "action": "update",
-                "dataset_metadata": {"title": "file title"},
+                "dataset_metadata": {"title": "file title", **use_category_json},
             },
         ],
     }
@@ -210,7 +233,9 @@ def dataset_with_metadata(admin_client, deep_file_tree, data_urls) -> Dict:
     return dataset
 
 
-def test_dataset_files_post_metadata_get_files(admin_client, dataset_with_metadata, data_urls):
+def test_dataset_files_post_metadata_get_files(
+    admin_client, dataset_with_metadata, data_urls, use_category_json
+):
     url = data_urls(dataset_with_metadata)["files"]
     res = admin_client.get(url)
     assert_nested_subdict(
@@ -219,7 +244,7 @@ def test_dataset_files_post_metadata_get_files(admin_client, dataset_with_metada
                 {"pathname": "/dir2/subdir1/file1.txt"},
                 {
                     "pathname": "/dir2/subdir1/file2.txt",
-                    "dataset_metadata": {"title": "file title"},
+                    "dataset_metadata": {"title": "file title", **use_category_json},
                 },
                 {"pathname": "/dir2/subdir1/file3.txt"},
             ],
@@ -229,7 +254,7 @@ def test_dataset_files_post_metadata_get_files(admin_client, dataset_with_metada
 
 
 def test_dataset_files_post_metadata_get_directories(
-    admin_client, dataset_with_metadata, data_urls
+    admin_client, dataset_with_metadata, data_urls, use_category_json
 ):
     url = data_urls(dataset_with_metadata)["directories"]
     res = admin_client.get(url, {"path": "/dir2/subdir1", "pagination": "false"})
@@ -237,13 +262,13 @@ def test_dataset_files_post_metadata_get_directories(
         {
             "directory": {
                 "name": "subdir1",
-                "dataset_metadata": {"title": "directory title"},
+                "dataset_metadata": {"title": "directory title", **use_category_json},
             },
             "files": [
                 {"pathname": "/dir2/subdir1/file1.txt"},
                 {
                     "pathname": "/dir2/subdir1/file2.txt",
-                    "dataset_metadata": {"title": "file title"},
+                    "dataset_metadata": {"title": "file title", **use_category_json},
                 },
                 {"pathname": "/dir2/subdir1/file3.txt"},
             ],
@@ -252,7 +277,9 @@ def test_dataset_files_post_metadata_get_directories(
     )
 
 
-def test_dataset_files_post_multiple_metadata_updates(admin_client, deep_file_tree, data_urls):
+def test_dataset_files_post_multiple_metadata_updates(
+    admin_client, deep_file_tree, data_urls, use_category_json
+):
     dataset = factories.DatasetFactory()
     urls = data_urls(dataset)
     actions = {
@@ -261,17 +288,20 @@ def test_dataset_files_post_multiple_metadata_updates(admin_client, deep_file_tr
             {
                 "id": deep_file_tree["files"]["/rootfile.txt"].id,
                 "action": "add",
-                "dataset_metadata": {"title": "title 1"},
+                "dataset_metadata": {"title": "title 1", **use_category_json},
             },
             {
                 "id": deep_file_tree["files"]["/rootfile.txt"].id,
                 "action": "update",
-                "dataset_metadata": {"title": "title 2"},
+                "dataset_metadata": {"title": "title 2", **use_category_json},
             },
             {
                 "id": deep_file_tree["files"]["/rootfile.txt"].id,
                 "action": "remove",
-                "dataset_metadata": {"title": "metadata for remove action is ignored"},
+                "dataset_metadata": {
+                    "title": "metadata for remove action is ignored",
+                    **use_category_json,
+                },
             },
             {
                 "id": deep_file_tree["files"]["/rootfile.txt"].id,
@@ -290,14 +320,19 @@ def test_dataset_files_post_multiple_metadata_updates(admin_client, deep_file_tr
     assert_nested_subdict(
         {
             "results": [
-                {"pathname": "/rootfile.txt", "dataset_metadata": {"title": "title 2"}},
+                {
+                    "pathname": "/rootfile.txt",
+                    "dataset_metadata": {"title": "title 2", "use_category": matchers.Any()},
+                },
             ]
         },
         res.json(),
     )
 
 
-def test_dataset_files_post_update_for_existing_metadata(admin_client, deep_file_tree, data_urls):
+def test_dataset_files_post_update_for_existing_metadata(
+    admin_client, deep_file_tree, data_urls, use_category_json
+):
     dataset = factories.DatasetFactory()
     urls = data_urls(dataset)
     actions = {
@@ -305,13 +340,13 @@ def test_dataset_files_post_update_for_existing_metadata(admin_client, deep_file
         "file_actions": [
             {
                 "id": deep_file_tree["files"]["/rootfile.txt"].id,
-                "dataset_metadata": {"title": "title 1"},
+                "dataset_metadata": {"title": "title 1", **use_category_json},
             },
         ],
         "directory_actions": [
             {
                 "pathname": "/",
-                "dataset_metadata": {"title": "root dir"},
+                "dataset_metadata": {"title": "root dir", **use_category_json},
             },
         ],
     }
@@ -327,13 +362,13 @@ def test_dataset_files_post_update_for_existing_metadata(admin_client, deep_file
         "file_actions": [
             {
                 "id": deep_file_tree["files"]["/rootfile.txt"].id,
-                "dataset_metadata": {"title": "title 2"},
+                "dataset_metadata": {"title": "title 2", **use_category_json},
             },
         ],
         "directory_actions": [
             {
                 "pathname": "/",
-                "dataset_metadata": {"title": "root dir updated"},
+                "dataset_metadata": {"title": "root dir updated", **use_category_json},
             },
         ],
     }
@@ -358,7 +393,9 @@ def test_dataset_files_post_update_for_existing_metadata(admin_client, deep_file
     assert res.data["directory"]["dataset_metadata"]["title"] == "root dir updated"
 
 
-def test_dataset_files_post_remove_file_metadata(admin_client, deep_file_tree, data_urls):
+def test_dataset_files_post_remove_file_metadata(
+    admin_client, deep_file_tree, data_urls, use_category_json
+):
     dataset = factories.DatasetFactory()
 
     actions = {
@@ -366,7 +403,7 @@ def test_dataset_files_post_remove_file_metadata(admin_client, deep_file_tree, d
         "file_actions": [
             {
                 "id": deep_file_tree["files"]["/rootfile.txt"].id,
-                "dataset_metadata": {"title": "title"},
+                "dataset_metadata": {"title": "title", **use_category_json},
             },
         ],
     }
@@ -406,7 +443,6 @@ def test_dataset_files_post_remove_file_metadata(admin_client, deep_file_tree, d
 
 def test_dataset_files_post_none_file_metadata(admin_client, deep_file_tree, data_urls):
     dataset = factories.DatasetFactory()
-
     actions = {
         **deep_file_tree["params"],
         "file_actions": [
@@ -428,7 +464,9 @@ def test_dataset_files_post_none_file_metadata(admin_client, deep_file_tree, dat
     assert res.data["results"][0]["dataset_metadata"] is None
 
 
-def test_dataset_files_post_remove_directory_metadata(admin_client, deep_file_tree, data_urls):
+def test_dataset_files_post_remove_directory_metadata(
+    admin_client, deep_file_tree, data_urls, use_category_json
+):
     dataset = factories.DatasetFactory()
 
     actions = {
@@ -436,7 +474,7 @@ def test_dataset_files_post_remove_directory_metadata(admin_client, deep_file_tr
         "directory_actions": [
             {
                 "pathname": "/dir1/",
-                "dataset_metadata": {"title": "title"},
+                "dataset_metadata": {"title": "title", **use_category_json},
             },
         ],
     }
@@ -495,6 +533,59 @@ def test_dataset_files_post_none_directory_metadata(admin_client, deep_file_tree
     assert res.status_code == 200
     res = admin_client.get(urls["directories"], {"pagination": "false"})
     assert res.data["directories"][0]["dataset_metadata"] is None
+
+
+def test_dataset_files_update_metadata_as_non_project_member(
+    dataset_with_metadata,
+    user_client,
+    user,
+    deep_file_tree,
+    data_urls,
+    use_category_reference_data,
+):
+    dataset_with_metadata.metadata_owner.user = user
+    dataset_with_metadata.metadata_owner.save()
+    use_category = {
+        "use_category": {
+            "url": "http://uri.suomi.fi/codelist/fairdata/use_category/code/documentation"
+        }
+    }
+
+    # Updating metadata does not require csc_project membership
+    actions = {
+        **deep_file_tree["params"],
+        "directory_actions": [
+            {
+                "action": "update",
+                "pathname": "/dir2/subdir1/",
+                "dataset_metadata": {"title": "new title", **use_category},
+            },
+        ],
+    }
+    urls = data_urls(dataset_with_metadata)
+    res = user_client.patch(
+        urls["dataset"],
+        {"fileset": actions},
+        content_type="application/json",
+    )
+    assert res.status_code == 200
+    res = user_client.get(urls["directories"], {"pagination": "false"})
+    assert res.data["directories"][0]["dataset_metadata"] is None
+
+    # Adding/removing files requires csc_project membership
+    actions = {
+        **deep_file_tree["params"],
+        "directory_actions": [
+            {"action": "remove", "pathname": "/dir2/subdir1/"},
+        ],
+    }
+    urls = data_urls(dataset_with_metadata)
+    res = user_client.patch(
+        urls["dataset"],
+        {"fileset": actions},
+        content_type="application/json",
+    )
+    assert res.status_code == 400
 
 
 def test_dataset_files_multiple_post_requests(admin_client, deep_file_tree, data_urls):
@@ -618,6 +709,9 @@ def test_dataset_files_invalid_file_type(admin_client, deep_file_tree, reference
         "title": "File title",
         "description": "File description",
         "file_type": {"url": "http://uri.suomi.fi/codelist/fairdata/file_type/code/peruna"},
+        "use_category": {
+            "url": "http://uri.suomi.fi/codelist/fairdata/use_category/code/documentation"
+        },
     }
     actions = {
         **deep_file_tree["params"],
@@ -684,7 +778,28 @@ def test_dataset_files_wrong_project_identifier(admin_client, deep_file_tree, da
     assert "File not found" in str(res.data["fileset"]["file_actions"])
 
 
-def test_dataset_files_unknown_project_identifier(admin_client, deep_file_tree, data_urls):
+def test_dataset_files_unknown_project_identifier(user_client, user, deep_file_tree, data_urls):
+    dataset = factories.DatasetFactory()
+    dataset.metadata_owner.user = user
+    dataset.metadata_owner.save()
+    actions = {
+        "csc_project": "bleh",
+        "storage_service": deep_file_tree["params"]["storage_service"],
+        "directory_actions": [{"pathname": "/dir1/"}],
+    }
+    urls = data_urls(dataset)
+    res = user_client.patch(
+        urls["dataset"],
+        {"fileset": actions},
+        content_type="application/json",
+    )
+    assert res.status_code == 400
+    assert "csc_project" in str(res.data["fileset"])
+
+
+def test_dataset_files_unknown_project_identifier_by_admin(
+    admin_client, deep_file_tree, data_urls
+):
     dataset = factories.DatasetFactory()
     actions = {
         "csc_project": "bleh",

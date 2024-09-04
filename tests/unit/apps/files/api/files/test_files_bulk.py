@@ -133,7 +133,7 @@ def test_files_insert_many_missing_storage_identifier(ida_client, action_url):
         files,
         content_type="application/json",
     )
-    assert res.status_code == 200
+    assert res.status_code == 400
     assert_nested_subdict(
         [
             {
@@ -229,7 +229,7 @@ def test_files_insert_many_file_path_already_exists(ida_client, csc_project, act
     res = ida_client.post(
         action_url("insert", ignore_errors=True), files, content_type="application/json"
     )
-    assert res.status_code == 200
+    assert res.status_code == 400
     assert_nested_subdict(
         {
             "success": [],
@@ -257,7 +257,7 @@ def test_files_insert_many_duplicate_file_path(ida_client, action_url):
     res = ida_client.post(
         action_url("insert", ignore_errors=True), files, content_type="application/json"
     )
-    assert res.status_code == 200
+    assert res.status_code == 207
     assert_nested_subdict(
         {
             "success": [{"object": files[0]}],
@@ -510,7 +510,7 @@ def test_files_upsert_many_with_missing_fields_for_new(ida_client, action_url):
     res = ida_client.post(
         action_url("upsert", ignore_errors=True), files, content_type="application/json"
     )
-    assert res.status_code == 200
+    assert res.status_code == 207
     assert_nested_subdict(
         {
             "success": [
@@ -630,7 +630,7 @@ def test_files_delete_many_non_existing(ida_client):
     res = ida_client.post(
         "/v3/files/delete-many?ignore_errors=true", files, content_type="application/json"
     )
-    assert res.status_code == 200
+    assert res.status_code == 207
     assert_nested_subdict(
         {
             "success": [
@@ -668,7 +668,7 @@ def test_files_delete_duplicate_id(ida_client, csc_project, another_csc_project,
     res = ida_client.post(
         action_url("delete", ignore_errors=True), files, content_type="application/json"
     )
-    assert res.status_code == 200
+    assert res.status_code == 207
     assert_nested_subdict(
         {
             "success": [
@@ -680,3 +680,48 @@ def test_files_delete_duplicate_id(ida_client, csc_project, another_csc_project,
         },
         res.json(),
     )
+
+
+def test_files_bulk_delete_unknown_storage_identifier(ida_client, csc_project, action_url):
+    res = ida_client.post(
+        action_url("delete", ignore_errors=True),
+        [{"storage_service": "ida", "storage_identifier": "jeejee"}],
+        content_type="application/json",
+    )
+    assert res.status_code == 400
+    assert res.json()["failed"][0] == {
+        "object": {"storage_identifier": "jeejee", "storage_service": "ida"},
+        "errors": {"id": "File not found."},
+    }
+
+
+def test_files_bulk_delete_missing_storage_service(ida_client, csc_project, action_url):
+    res = ida_client.post(
+        action_url("delete", ignore_errors=True),
+        [{"storage_identifier": "jeejee"}],
+        content_type="application/json",
+    )
+    assert res.status_code == 400
+    assert res.json()["failed"][0] == {
+        "object": {"storage_identifier": "jeejee"},
+        "errors": {
+            "id": "File not found.",
+            "storage_service": "Either storage_service or id is required.",
+        },
+    }
+
+
+def test_files_bulk_delete_missing_storage_identifier(ida_client, csc_project, action_url):
+    res = ida_client.post(
+        action_url("delete", ignore_errors=True),
+        [{"storage_service": "ida"}],
+        content_type="application/json",
+    )
+    assert res.status_code == 400
+    assert res.json()["failed"][0] == {
+        "object": {"storage_service": "ida"},
+        "errors": {
+            "id": "File not found.",
+            "storage_identifier": "Either storage_identifier or id is required.",
+        },
+    }

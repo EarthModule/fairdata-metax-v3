@@ -8,6 +8,14 @@
 
 ### :::tests.conftest.dataset_signal_handlers
 
+## enable_sso
+
+### :::tests.conftest.enable_sso
+
+## disable_sso
+
+### :::tests.conftest.disable_sso
+
 ## fairdata_users_group
 
 ### :::tests.conftest.fairdata_users_group
@@ -47,6 +55,10 @@
 ## data_catalog
 
 ### :::tests.conftest.data_catalog
+
+## data_catalog_harvested
+
+### :::tests.conftest.data_catalog_harvested
 
 ## organization_reference_data
 

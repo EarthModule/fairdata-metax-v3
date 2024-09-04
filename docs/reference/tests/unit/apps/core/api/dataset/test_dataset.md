@@ -196,7 +196,23 @@
 
 ### :::tests.unit.apps.core.api.dataset.test_dataset.test_missing_required_fields
 
+## test_missing_restriction_grounds
+
+### :::tests.unit.apps.core.api.dataset.test_dataset.test_missing_restriction_grounds
+
+## test_unnecessary_restriction_grounds
+
+### :::tests.unit.apps.core.api.dataset.test_dataset.test_unnecessary_restriction_grounds
+
 ## test_get_dataset_no_multiple_objects_error
 
 ### :::tests.unit.apps.core.api.dataset.test_dataset.test_get_dataset_no_multiple_objects_error
+
+## test_not_a_list
+
+### :::tests.unit.apps.core.api.dataset.test_dataset.test_not_a_list
+
+## test_remove_rights
+
+### :::tests.unit.apps.core.api.dataset.test_dataset.test_remove_rights
 

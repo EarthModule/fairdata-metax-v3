@@ -218,9 +218,13 @@ class FileSet(AbstractBaseModel):
 
     @cached_property
     def total_files_aggregates(self) -> dict:
-        return self.files.aggregate(
+        return self.files(manager="all_objects").aggregate(
             total_files_count=Count("*"), total_files_size=Coalesce(Sum("size"), 0)
         )
+
+    @cached_property
+    def file_types(self):
+        return self.file_metadata.values_list("file_type__pref_label", flat=True)
 
     @property
     def total_files_size(self) -> int:
@@ -240,17 +244,31 @@ class FileSet(AbstractBaseModel):
 
     def clear_cached_file_properties(self):
         """Clear cached file properties after changes to FileSet files."""
-        for prop in ["total_files_aggregates"]:
+        for prop in ["total_files_aggregates", "file_types"]:
             try:
                 delattr(self, prop)
             except AttributeError:
-                logger.info(f"No property {prop} in cache.")
+                pass
 
     def update_published(self, queryset=None, exclude_self=False):
         """Update publication timestamps of files."""
         if not queryset:
             queryset = self.files.all()
 
+        if (
+            not exclude_self
+            and self.dataset
+            and self.dataset.state == "published"
+            and self.dataset.deprecated is None
+            and self.dataset.removed is None
+        ):
+            # Current dataset is public, all files should be published
+            files_to_publish = queryset.filter(published__isnull=True)
+            files_to_publish.update(published=timezone.now())
+            return
+
+        # Current dataset is non-public, so we have to check if files
+        # are in any public dataset to find their publication state
         published_filesets = FileSet.objects.filter(
             dataset__state="published",
             dataset__deprecated__isnull=True,
@@ -296,7 +314,7 @@ class FileSet(AbstractBaseModel):
         )
         # only one storage project is expected but this works with multiple
         for storage in storages:
-            dataset_pathnames = storage.get_directory_paths(file_set=self)
+            dataset_pathnames = storage.get_directory_paths(file_set=self, include_removed=True)
             unused_directory_metadata = FileSetDirectoryMetadata.objects.filter(
                 storage=storage
             ).exclude(pathname__in=dataset_pathnames)
@@ -305,7 +323,9 @@ class FileSet(AbstractBaseModel):
     def save(self, *args, **kwargs):
         # Verify that dataset is allowed to have files in the storage_service.
         # When _updating is set, dataset is responsible for the check.
-        if (dataset := self.dataset) and not getattr(dataset, "_updating", False):
+        if (dataset := getattr(self, "dataset", None)) and not getattr(
+            dataset, "_updating", False
+        ):
             dataset.validate_allow_storage_service(self.storage_service)
         return super().save(*args, **kwargs)
 

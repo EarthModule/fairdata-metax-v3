@@ -9,7 +9,13 @@ pytestmark = [pytest.mark.django_db, pytest.mark.dataset]
 
 
 @pytest.fixture
-def dataset_json_with_files(deep_file_tree, data_catalog):
+def dataset_json_with_files(deep_file_tree, data_catalog, use_category_reference_data):
+    use_category = {
+        "use_category": {
+            "url": "http://uri.suomi.fi/codelist/fairdata/use_category/code/documentation"
+        }
+    }
+
     return {
         "data_catalog": data_catalog.id,
         "title": {"en": "Test dataset"},
@@ -18,17 +24,60 @@ def dataset_json_with_files(deep_file_tree, data_catalog):
             "directory_actions": [
                 {
                     "pathname": "/dir1/",
-                    "dataset_metadata": {"title": "directory"},
+                    "dataset_metadata": {"title": "directory", **use_category},
                 }
             ],
             "file_actions": [
                 {
                     "id": deep_file_tree["files"]["/rootfile.txt"].id,
-                    "dataset_metadata": {"title": "file"},
+                    "dataset_metadata": {"title": "file", **use_category},
                 }
             ],
         },
     }
+
+
+@pytest.fixture
+def dataset_json_with_files_with_file_types(
+    dataset_json_with_files,
+    deep_file_tree,
+    data_catalog,
+    reference_data,
+    use_category_json,
+):
+    dataset = {**dataset_json_with_files}
+    dataset["fileset"]["file_actions"].extend(
+        [
+            {
+                "id": deep_file_tree["files"]["/dir2/subdir2/file1.txt"].id,
+                "dataset_metadata": {
+                    "file_type": {
+                        "url": "http://uri.suomi.fi/codelist/fairdata/file_type/code/text"
+                    },
+                    **use_category_json,
+                },
+            },
+            {
+                "id": deep_file_tree["files"]["/dir2/subdir2/file2.txt"].id,
+                "dataset_metadata": {
+                    "file_type": {
+                        "url": "http://uri.suomi.fi/codelist/fairdata/file_type/code/video"
+                    },
+                    **use_category_json,
+                },
+            },
+            {
+                "id": deep_file_tree["files"]["/dir2/subdir2/file3.txt"].id,
+                "dataset_metadata": {
+                    "file_type": {
+                        "url": "http://uri.suomi.fi/codelist/fairdata/file_type/code/video"
+                    },
+                    **use_category_json,
+                },
+            },
+        ]
+    )
+    return dataset
 
 
 @pytest.fixture
@@ -152,6 +201,27 @@ def test_dataset_get_dataset_with_files(admin_client, deep_file_tree, dataset_js
         "total_files_count": 3,
         "total_files_size": 3 * 1024,
     }
+
+
+def test_dataset_get_dataset_with_files_with_file_types(
+    admin_client, deep_file_tree, dataset_json_with_files_with_file_types
+):
+    res = admin_client.post(
+        "/v3/datasets",
+        dataset_json_with_files_with_file_types,
+        content_type="application/json",
+    )
+    assert res.status_code == 201
+
+    res = admin_client.get(f"/v3/datasets/{res.data['id']}")
+    assert res.status_code == 200
+    assert len(res.data["fileset"]["file_types"]) == 2
+    assert len(res.data["fileset"]["file_types"]["en"]) == 2
+    assert len(res.data["fileset"]["file_types"]["fi"]) == 2
+    assert "Video" in res.data["fileset"]["file_types"]["en"]
+    assert "Video" in res.data["fileset"]["file_types"]["fi"]
+    assert "Text" in res.data["fileset"]["file_types"]["en"]
+    assert "Teksti" in res.data["fileset"]["file_types"]["fi"]
 
 
 def test_dataset_get_dataset_with_no_files(

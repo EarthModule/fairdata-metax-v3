@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.settings import api_settings
+from watson.search import skip_index_update
 
 from apps.common.serializers import (
     CommonListSerializer,
@@ -17,6 +18,7 @@ from apps.common.serializers import (
     CommonNestedModelSerializer,
     OneOf,
 )
+from apps.common.serializers.fields import ConstantField
 from apps.core.models import DataCatalog, Dataset
 from apps.core.models.concepts import FieldOfScience, Language, ResearchInfra, Theme
 from apps.core.serializers.common_serializers import (
@@ -30,6 +32,7 @@ from apps.core.serializers.concept_serializers import SpatialModelSerializer
 from apps.core.serializers.data_catalog_serializer import DataCatalogModelSerializer
 from apps.core.serializers.dataset_actor_serializers import DatasetActorSerializer
 from apps.core.serializers.dataset_allowed_actions import DatasetAllowedActionsSerializer
+from apps.core.serializers.dataset_metrics_serializer import DatasetMetricsSerializer
 from apps.core.serializers.metadata_provider_serializer import MetadataProviderModelSerializer
 from apps.core.serializers.preservation_serializers import PreservationModelSerializer
 from apps.core.serializers.project_serializer import ProjectModelSerializer
@@ -84,6 +87,7 @@ class LinkedDraftSerializer(CommonNestedModelSerializer):
 
 
 class DatasetSerializer(CommonNestedModelSerializer):
+    metadata_repository = ConstantField(value="Fairdata")
     access_rights = AccessRightsModelSerializer(required=False, allow_null=True, many=False)
     field_of_science = FieldOfScience.get_serializer_field(required=False, many=True)
     infrastructure = ResearchInfra.get_serializer_field(required=False, many=True)
@@ -94,11 +98,11 @@ class DatasetSerializer(CommonNestedModelSerializer):
     metadata_owner = MetadataProviderModelSerializer(required=False)
     other_identifiers = OtherIdentifierModelSerializer(required=False, many=True)
     theme = Theme.get_serializer_field(required=False, many=True)
-    spatial = SpatialModelSerializer(required=False, many=True)
-    temporal = TemporalModelSerializer(required=False, many=True)
+    spatial = SpatialModelSerializer(required=False, many=True, lazy=True)
+    temporal = TemporalModelSerializer(required=False, many=True, lazy=True)
     relation = EntityRelationSerializer(required=False, many=True)
     preservation = PreservationModelSerializer(required=False, many=False)
-    provenance = ProvenanceModelSerializer(required=False, many=True)
+    provenance = ProvenanceModelSerializer(required=False, many=True, lazy=True)
     projects = ProjectModelSerializer(required=False, many=True)
     dataset_versions = serializers.SerializerMethodField()
     allowed_actions = DatasetAllowedActionsSerializer(read_only=True, source="*")
@@ -106,13 +110,14 @@ class DatasetSerializer(CommonNestedModelSerializer):
     modified = serializers.DateTimeField(required=False, read_only=False)
     next_draft = LinkedDraftSerializer(read_only=True)
     draft_of = LinkedDraftSerializer(read_only=True)
+    metrics = DatasetMetricsSerializer(read_only=True)  # Included when include_metrics=true
 
     def get_dataset_versions(self, instance):
         if version_set := instance.dataset_versions:
             # Use prefetched results stored in _datasets when available
             versions = getattr(version_set, "_datasets", None) or version_set.datasets(
                 manager="all_objects"
-            ).order_by("-version").prefetch_related("draft_of", "next_draft")
+            ).order_by("-version").prefetch_related(*Dataset.dataset_versions_prefetch_fields)
 
             if not instance.has_permission_to_see_drafts(self.context["request"].user):
                 versions = [
@@ -140,6 +145,8 @@ class DatasetSerializer(CommonNestedModelSerializer):
         fields = super().get_fields()
         if not self.context["view"].query_params.get("include_allowed_actions"):
             fields.pop("allowed_actions", None)
+        if not self.context["view"].query_params.get("include_metrics"):
+            fields.pop("metrics", None)
         return fields
 
     def save(self, **kwargs):
@@ -161,6 +168,7 @@ class DatasetSerializer(CommonNestedModelSerializer):
         return super().save(**kwargs)
 
     def to_representation(self, instance: Dataset):
+        instance.ensure_prefetch()
         request = self.context["request"]
         self.context["show_emails"] = instance.has_permission_to_edit(request.user)
         ret = super().to_representation(instance)
@@ -196,6 +204,8 @@ class DatasetSerializer(CommonNestedModelSerializer):
             "next_draft",
             "version",
             "api_version",
+            "metadata_repository",
+            "metrics",
         )
         fields = (
             "id",  # read only
@@ -318,7 +328,6 @@ class DatasetSerializer(CommonNestedModelSerializer):
         fileset = data.get("file_set", existing_fileset)
         remote_resources = data.get("remote_resources", existing_remote_resources)
         if fileset and remote_resources:
-            print(fileset, remote_resources)
             errors[
                 api_settings.NON_FIELD_ERRORS_KEY
             ] = "Cannot have files and remote resources in the same dataset."
@@ -357,11 +366,14 @@ class DatasetSerializer(CommonNestedModelSerializer):
         # reverse and many-to-many relations to the newly created
         # dataset before it is actually published.
         state = validated_data.pop("state", None)
-        instance: Dataset = super().create(validated_data=validated_data)
-
-        # Now reverse and many-to-many relations have been assigned, try to publish
+        instance: Dataset
         if state == Dataset.StateChoices.PUBLISHED:
+            with skip_index_update():  # Don't add draft to search index if publish fails
+                instance = super().create(validated_data=validated_data)
+            # Now reverse and many-to-many relations have been assigned, try to publish
             instance.publish()
+        else:
+            instance = super().create(validated_data=validated_data)
         return instance
 
 

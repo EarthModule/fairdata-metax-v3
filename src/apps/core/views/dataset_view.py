@@ -8,7 +8,7 @@
 import logging
 
 from django.db import transaction
-from django.db.models import Prefetch, Q, QuerySet
+from django.db.models import Prefetch, Q, QuerySet, Value
 from django.http import Http404
 from django.utils.decorators import method_decorator
 from django_filters import rest_framework as filters
@@ -44,12 +44,13 @@ from apps.core.serializers.contact_serializer import (
 from apps.core.serializers.dataset_allowed_actions import (
     DatasetAllowedActionsQueryParamsSerializer,
 )
+from apps.core.serializers.dataset_metrics_serializer import DatasetMetricsQueryParamsSerializer
 from apps.core.serializers.dataset_serializer import (
     DatasetRevisionsQueryParamsSerializer,
     ExpandCatalogQueryParamsSerializer,
     LatestVersionQueryParamsSerializer,
 )
-from apps.core.serializers.legacy_serializer import LegacyDatasetUpdateSerializer
+from apps.core.serializers.legacy_serializer import LegacyDatasetConversionValidationSerializer
 from apps.core.views.common_views import DefaultValueOrdering
 from apps.files.models import File
 from apps.files.serializers import DirectorySerializer
@@ -292,6 +293,10 @@ class DatasetViewSet(CommonModelViewSet):
             "actions": ["retrieve", "list", "create", "update", "partial_update", "revisions"],
         },
         {
+            "class": DatasetMetricsQueryParamsSerializer,
+            "actions": ["retrieve", "list", "create", "update", "partial_update", "revisions"],
+        },
+        {
             "class": IncludeRemovedQueryParamsSerializer,
             "actions": ["list", "retrieve", "update", "partial_update"],
         },
@@ -303,76 +308,12 @@ class DatasetViewSet(CommonModelViewSet):
     access_policy = DatasetAccessPolicy
     serializer_class = DatasetSerializer
 
-    prefetch_fields = (
-        "access_rights__access_type",
-        "access_rights__license__reference",
-        "access_rights__license",
-        "access_rights__restriction_grounds",
-        "access_rights",
-        "actors__organization__homepage",
-        "actors__organization__parent__homepage",
-        "actors__organization__parent",
-        "actors__organization",
-        "actors__person__homepage",
-        "actors__person",
-        "actors",
-        "data_catalog",
-        "dataset_versions",
-        "draft_of",
-        "field_of_science",
-        "file_set",
-        "infrastructure",
-        "language",
-        "metadata_owner__user",
-        "metadata_owner",
-        "next_draft",
-        "other_identifiers__identifier_type",
-        "other_identifiers",
-        "preservation",
-        "projects__funding__funder__funder_type",
-        "projects__funding__funder__organization__homepage",
-        "projects__funding__funder__organization__parent__homepage",
-        "projects__funding__funder__organization__parent",
-        "projects__funding__funder__organization",
-        "projects__funding__funder",
-        "projects__funding",
-        "projects__participating_organizations__homepage",
-        "projects__participating_organizations__parent__homepage",
-        "projects",
-        "provenance__event_outcome",
-        "provenance__is_associated_with__organization__homepage",
-        "provenance__is_associated_with__organization__parent__homepage",
-        "provenance__is_associated_with__organization__parent",
-        "provenance__is_associated_with__organization",
-        "provenance__is_associated_with__person__homepage",
-        "provenance__is_associated_with__person",
-        "provenance__is_associated_with",
-        "provenance__lifecycle_event",
-        "provenance__spatial__reference",
-        "provenance__spatial",
-        "provenance__temporal",
-        "provenance__used_entity__type",
-        "provenance__used_entity",
-        "provenance__variables__concept",
-        "provenance__variables__universe",
-        "provenance__variables",
-        "provenance",
-        "relation__entity__type",
-        "relation__entity",
-        "relation__relation_type",
-        "relation",
-        "remote_resources__file_type",
-        "remote_resources__use_category",
-        "remote_resources",
-        "spatial__provenance",
-        "spatial__reference",
-        "spatial",
-        "temporal",
-        "theme",
-    )
-
-    queryset = Dataset.available_objects.prefetch_related(*prefetch_fields)
-    queryset_include_removed = Dataset.all_objects.prefetch_related(*prefetch_fields)
+    queryset = Dataset.available_objects.prefetch_related(
+        *Dataset.common_prefetch_fields
+    ).annotate(is_prefetched=Value(True))
+    queryset_include_removed = Dataset.all_objects.prefetch_related(
+        *Dataset.common_prefetch_fields
+    ).annotate(is_prefetched=Value(True))
 
     filterset_class = DatasetFilter
     http_method_names = ["get", "post", "put", "patch", "delete", "options"]
@@ -449,7 +390,7 @@ class DatasetViewSet(CommonModelViewSet):
                 Prefetch(
                     "dataset_versions__datasets",
                     queryset=Dataset.all_objects.order_by("-version").prefetch_related(
-                        "draft_of", "next_draft"
+                        *Dataset.dataset_versions_prefetch_fields
                     ),
                     to_attr="_datasets",
                 )
@@ -549,7 +490,7 @@ class DatasetViewSet(CommonModelViewSet):
                         errors["invalid"] = invalid
                     if fixed := converter.get_fixed_values_by_path():
                         errors["fixed"] = fixed
-                    serializer = LegacyDatasetUpdateSerializer(
+                    serializer = LegacyDatasetConversionValidationSerializer(
                         data=data, context={"dataset": None}
                     )
                     serializer.is_valid(raise_exception=True)

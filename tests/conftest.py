@@ -8,6 +8,7 @@
     - https://docs.pytest.org/en/stable/writing_plugins.html
 """
 
+import logging
 import re
 from dataclasses import dataclass, field
 from typing import Optional
@@ -55,6 +56,21 @@ def dataset_signal_handlers() -> DatasetSignalHandlers:
 
 
 @pytest.fixture
+def enable_sso(settings):
+    settings.ENABLE_SSO_AUTH = True
+    settings.SSO_SECRET_KEY = "TOP_SECRET"
+    settings.SSO_SESSION_COOKIE = "sso_session_test"
+    settings.SSO_HOST = "https://fake-sso"
+    settings.SSO_METAX_SERVICE_NAME = "METAX"
+    settings.SSO_TRUSTED_SERVICE_TOKEN = "trusted-token"
+
+
+@pytest.fixture
+def disable_sso(settings):
+    settings.ENABLE_SSO_AUTH = False
+
+
+@pytest.fixture
 def fairdata_users_group():
     group, _ = Group.objects.get_or_create(name="fairdata_users")
     return group
@@ -69,7 +85,12 @@ def service_group():
 @pytest.fixture
 def user(fairdata_users_group):
     user, created = MetaxUser.objects.get_or_create(
-        username="test_user", first_name="Teppo", last_name="Testaaja", is_hidden=False
+        username="test_user",
+        fairdata_username="test_user",
+        first_name="Teppo",
+        last_name="Testaaja",
+        email="teppo@example.com",
+        is_hidden=False,
     )
     user.groups.set([fairdata_users_group])
     user.set_password("teppo")
@@ -79,10 +100,15 @@ def user(fairdata_users_group):
 
 @pytest.fixture
 def user2(fairdata_users_group):
-    user, created = MetaxUser.objects.get_or_create(
-        username="test_user2", first_name="Matti", last_name="Mestaaja", is_hidden=False
+    user, _created = MetaxUser.objects.get_or_create(
+        username="test_user2",
+        fairdata_username="test_user2",
+        first_name="Matti",
+        last_name="Mestaaja",
+        email="matti@example.com",
+        is_hidden=False,
     )
-    group, _ = Group.objects.get_or_create(name="fairdata_users")
+    _group, _ = Group.objects.get_or_create(name="fairdata_users")
     user.groups.set([fairdata_users_group])
     user.set_password("matti")
     user.save()
@@ -138,6 +164,11 @@ def pytest_collection_modifyitems(items):
             item.add_marker("unit")
             item.add_marker(pytest.mark.django_db)
 
+    # When some tests contain @pytest.mark.only, run only those tests.
+    only = [item for item in items if item.get_closest_marker("only")]
+    if only:
+        items[:] = only
+
 
 @pytest.fixture
 def data_catalog(fairdata_users_group, service_group) -> DataCatalog:
@@ -153,6 +184,22 @@ def data_catalog(fairdata_users_group, service_group) -> DataCatalog:
         dataset_versioning_enabled=True,
         allow_remote_resources=True,
         storage_services=["ida", "pas"],
+    )
+    catalog.dataset_groups_create.set([fairdata_users_group, service_group])
+    return catalog
+
+
+@pytest.fixture
+def data_catalog_harvested(fairdata_users_group, service_group) -> DataCatalog:
+    identifier = "urn:nbn:fi:att:data-catalog-harvested"
+    title = {
+        "en": "Harvested datasets",
+    }
+    catalog = factories.DataCatalogFactory(
+        id=identifier,
+        title=title,
+        harvested=True,
+        allow_remote_resources=True,
     )
     catalog.dataset_groups_create.set([fairdata_users_group, service_group])
     return catalog
@@ -638,8 +685,6 @@ def user_client_2(user2):
 
 @pytest.fixture(autouse=True)
 def tweaked_settings(settings):
-    import logging
-
     logging.disable(logging.CRITICAL)
     settings.CACHES = {
         "default": {
@@ -662,6 +707,8 @@ def tweaked_settings(settings):
     settings.TEMPLATE_DEBUG = False
     settings.METAX_V2_INTEGRATION_ENABLED = False
     settings.METAX_V2_HOST = "metaxv2host"
+    settings.ENABLE_SSO_AUTH = False
+    settings.METRICS_REPORT_URL = "https://example.com/metrics/reports/datasets.json"
 
 
 @pytest.fixture

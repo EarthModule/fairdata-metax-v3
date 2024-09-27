@@ -26,6 +26,7 @@
         - [models](src/apps/common/models.md)
         - [pagination](src/apps/common/pagination.md)
         - [permissions](src/apps/common/permissions.md)
+        - [profiling](src/apps/common/profiling.md)
         - [renderers](src/apps/common/renderers.md)
         - [responses](src/apps/common/responses.md)
         - serializers
@@ -39,12 +40,17 @@
         - [factories](src/apps/core/factories.md)
         - [helpers](src/apps/core/helpers.md)
         - management.commands
+            - [_v2_client](src/apps/core/management/commands/_v2_client.md)
             - [load_test_data](src/apps/core/management/commands/load_test_data.md)
             - [migrate_v2_datasets](src/apps/core/management/commands/migrate_v2_datasets.md)
+            - [migrate_v2_files](src/apps/core/management/commands/migrate_v2_files.md)
+            - [update_metrics](src/apps/core/management/commands/update_metrics.md)
         - models
             - [access_rights](src/apps/core/models/access_rights.md)
             - catalog_record
                 - [dataset](src/apps/core/models/catalog_record/dataset.md)
+                - [dataset_metrics](src/apps/core/models/catalog_record/dataset_metrics.md)
+                - [dataset_permissions](src/apps/core/models/catalog_record/dataset_permissions.md)
                 - [meta](src/apps/core/models/catalog_record/meta.md)
                 - [related](src/apps/core/models/catalog_record/related.md)
             - [concepts](src/apps/core/models/concepts.md)
@@ -71,10 +77,12 @@
                 - [person_serializer](src/apps/core/serializers/dataset_actor_serializers/person_serializer.md)
             - [dataset_allowed_actions](src/apps/core/serializers/dataset_allowed_actions.md)
             - [dataset_files_serializer](src/apps/core/serializers/dataset_files_serializer.md)
+            - [dataset_metrics_serializer](src/apps/core/serializers/dataset_metrics_serializer.md)
             - [dataset_serializer](src/apps/core/serializers/dataset_serializer.md)
             - [file_metadata_serializer](src/apps/core/serializers/file_metadata_serializer.md)
             - [legacy_serializer](src/apps/core/serializers/legacy_serializer.md)
             - [metadata_provider_serializer](src/apps/core/serializers/metadata_provider_serializer.md)
+            - [permissions_serializer](src/apps/core/serializers/permissions_serializer.md)
             - [preservation_serializers](src/apps/core/serializers/preservation_serializers.md)
             - [project_serializer](src/apps/core/serializers/project_serializer.md)
             - [provenance_serializers](src/apps/core/serializers/provenance_serializers.md)
@@ -88,6 +96,7 @@
             - [index_view](src/apps/core/views/index_view.md)
             - [legacy_view](src/apps/core/views/legacy_view.md)
             - [nested_views](src/apps/core/views/nested_views.md)
+            - [permissions_view](src/apps/core/views/permissions_view.md)
             - [preservation_view](src/apps/core/views/preservation_view.md)
     - download
         - [apps](src/apps/download/apps.md)
@@ -107,6 +116,8 @@
             - [fields](src/apps/files/serializers/fields.md)
             - [file_bulk_serializer](src/apps/files/serializers/file_bulk_serializer.md)
             - [file_serializer](src/apps/files/serializers/file_serializer.md)
+            - [legacy_files_serializer](src/apps/files/serializers/legacy_files_serializer.md)
+        - [signals](src/apps/files/signals.md)
         - views
             - [directory_view](src/apps/files/views/directory_view.md)
             - [file_view](src/apps/files/views/file_view.md)
@@ -163,7 +174,11 @@
                 - [commands.test_index_organizations](tests/unit/apps/actors/commands/test_index_organizations.md)
                 - [models.test_organization](tests/unit/apps/actors/models/test_organization.md)
             - [cache.test_cache](tests/unit/apps/cache/test_cache.md)
-            - [common.serializers.test_fields](tests/unit/apps/common/serializers/test_fields.md)
+            - common
+                - serializers
+                    - [test_fields](tests/unit/apps/common/serializers/test_fields.md)
+                    - [test_serializers](tests/unit/apps/common/serializers/test_serializers.md)
+                - [test_profiling](tests/unit/apps/common/test_profiling.md)
             - [conftest](tests/unit/apps/conftest.md)
             - core
                 - adapters
@@ -183,10 +198,15 @@
                         - [test_dataset_catalogs](tests/unit/apps/core/api/dataset/test_dataset_catalogs.md)
                         - [test_dataset_contact](tests/unit/apps/core/api/dataset/test_dataset_contact.md)
                         - [test_dataset_drafts](tests/unit/apps/core/api/dataset/test_dataset_drafts.md)
+                        - [test_dataset_indexing](tests/unit/apps/core/api/dataset/test_dataset_indexing.md)
+                        - [test_dataset_metrics](tests/unit/apps/core/api/dataset/test_dataset_metrics.md)
+                        - [test_dataset_permissions](tests/unit/apps/core/api/dataset/test_dataset_permissions.md)
                         - [test_dataset_pids](tests/unit/apps/core/api/dataset/test_dataset_pids.md)
+                        - [test_dataset_spatial](tests/unit/apps/core/api/dataset/test_dataset_spatial.md)
                         - [test_dataset_timestamps](tests/unit/apps/core/api/dataset/test_dataset_timestamps.md)
                         - [test_dataset_v2_integration](tests/unit/apps/core/api/dataset/test_dataset_v2_integration.md)
                         - [test_legacy](tests/unit/apps/core/api/dataset/test_legacy.md)
+                        - [test_legacy_permissions](tests/unit/apps/core/api/dataset/test_legacy_permissions.md)
                         - [test_metadata_download](tests/unit/apps/core/api/dataset/test_metadata_download.md)
                         - [test_preservation](tests/unit/apps/core/api/dataset/test_preservation.md)
                         - [test_provenance](tests/unit/apps/core/api/dataset/test_provenance.md)
@@ -195,7 +215,9 @@
                         - [test_temporal](tests/unit/apps/core/api/dataset/test_temporal.md)
                         - [test_versioning](tests/unit/apps/core/api/dataset/test_versioning.md)
                     - dataset_files
+                        - [conftest](tests/unit/apps/core/api/dataset_files/conftest.md)
                         - [test_dataset_files_allowed_actions](tests/unit/apps/core/api/dataset_files/test_dataset_files_allowed_actions.md)
+                        - [test_dataset_files_legacy_integration](tests/unit/apps/core/api/dataset_files/test_dataset_files_legacy_integration.md)
                         - [test_dataset_files_list](tests/unit/apps/core/api/dataset_files/test_dataset_files_list.md)
                         - [test_dataset_files_update](tests/unit/apps/core/api/dataset_files/test_dataset_files_update.md)
                         - [test_dataset_with_files](tests/unit/apps/core/api/dataset_files/test_dataset_with_files.md)
@@ -206,6 +228,9 @@
                     - [conftest](tests/unit/apps/core/management/conftest.md)
                     - [test_load_test_data](tests/unit/apps/core/management/test_load_test_data.md)
                     - [test_migrate_v2_datasets](tests/unit/apps/core/management/test_migrate_v2_datasets.md)
+                    - [test_migrate_v2_files](tests/unit/apps/core/management/test_migrate_v2_files.md)
+                    - [test_update_metrics](tests/unit/apps/core/management/test_update_metrics.md)
+                    - [test_v2_client](tests/unit/apps/core/management/test_v2_client.md)
                 - models
                     - [conftest](tests/unit/apps/core/models/conftest.md)
                     - [test_abstract_base_object](tests/unit/apps/core/models/test_abstract_base_object.md)
@@ -242,6 +267,8 @@
                         - [test_files_create](tests/unit/apps/files/api/files/test_files_create.md)
                         - [test_files_datasets](tests/unit/apps/files/api/files/test_files_datasets.md)
                         - [test_files_delete](tests/unit/apps/files/api/files/test_files_delete.md)
+                        - [test_files_from_legacy](tests/unit/apps/files/api/files/test_files_from_legacy.md)
+                        - [test_files_legacy_integration](tests/unit/apps/files/api/files/test_files_legacy_integration.md)
                         - [test_files_list](tests/unit/apps/files/api/files/test_files_list.md)
                         - [test_files_published](tests/unit/apps/files/api/files/test_files_published.md)
                 - [models.test_file_storage](tests/unit/apps/files/models/test_file_storage.md)

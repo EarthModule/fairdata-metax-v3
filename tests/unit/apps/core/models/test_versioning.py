@@ -14,7 +14,7 @@ pytestmark = [pytest.mark.django_db, pytest.mark.dataset, pytest.mark.versioning
 
 
 def test_create_new_version(language, theme, dataset):
-    DatasetActorFactory.create_batch(2, dataset=dataset)
+    DatasetActorFactory.create_batch(2, dataset=dataset, roles=["creator"])
     ProvenanceFactory(dataset=dataset)
     dataset.language.add(language)
     dataset.theme.add(theme)
@@ -33,6 +33,8 @@ def test_create_new_version(language, theme, dataset):
     assert old_version.access_rights.id != new_version.access_rights.id
     assert old_version.actors.difference(new_version.actors.all()).count() == 3
     assert old_version.provenance.difference(new_version.provenance.all()).count() == 1
+    assert new_version.permissions_id == old_version.permissions_id
+    assert new_version.dataset_versions_id == old_version.dataset_versions_id
 
     # Preservation status is reset for new version
     assert old_version.preservation
@@ -218,6 +220,7 @@ def test_dataset_copied_fields():
         "dataset.last_modified_by",
         "dataset.metadata_owner",
         "dataset.other_identifiers.identifier_type",
+        "dataset.permissions",
         "dataset.projects.funding.funder.funder_type",
         "dataset.provenance.event_outcome",
         "dataset.provenance.lifecycle_event",
@@ -240,6 +243,7 @@ def test_dataset_copied_fields():
     assert omit == {
         "dataset.projects.participating_organizations.children",
         "dataset.legacydataset",
+        "dataset.metrics",
         "dataset.provenance.is_associated_with.organization.children",
         "dataset.actors.organization.children",
         "dataset.projects.funding.funder.organization.children",

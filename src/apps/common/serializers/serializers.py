@@ -9,10 +9,11 @@ import json
 import logging
 from ast import literal_eval
 from contextlib import contextmanager
+from typing import Dict, Mapping, Type
 from uuid import UUID
 
 from django.core.exceptions import FieldDoesNotExist
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.compat import postgres_fields
@@ -26,7 +27,22 @@ from apps.common.serializers.fields import MultiLanguageField, NullableCharField
 logger = logging.getLogger(__name__)
 
 
+def parse_html_data_to_list(data):
+    if html.is_html_input(data):
+        return html.parse_html_list(data, default=[])
+    return data
+
+
 class CommonListSerializer(serializers.ListSerializer):
+    def preprocess(self, data):
+        """Call preprocess method of child if available."""
+        if not isinstance(data, list):  # Ensure data is a list
+            return
+
+        if preprocess := getattr(self.child, "preprocess", None):
+            for item in data:
+                preprocess(item)
+
     def get_child_ordering_field(self):
         """Get field which is used for order value of child model.
 
@@ -60,8 +76,10 @@ class CommonListSerializer(serializers.ListSerializer):
 
     def to_internal_value(self, data):
         """Same as original to_internal_value but with ordering field in child_extra_attrs."""
-        if html.is_html_input(data):
-            data = html.parse_html_list(data, default=[])
+        if not self.parent:  # Root serializer calls preprocess
+            self.preprocess(data)
+
+        data = parse_html_data_to_list(data)
 
         if not isinstance(data, list):
             message = self.error_messages["not_a_list"].format(input_type=type(data).__name__)
@@ -154,10 +172,17 @@ class CommonListSerializer(serializers.ListSerializer):
             raise ValidationError(errors)
 
         # Delete instances that were not included in the update
+        lazy_saver = None
+        if self.child.lazy:  # Delete at end of deserialization
+            lazy_saver = LazyInstanceSaver.get_from_context(self.context)
+
         updated_items = {str(item_data.get("id", None)) for item_data in validated_data}
         for item in instance:
             if str(item.id) not in updated_items:
-                item.delete()
+                if lazy_saver:
+                    lazy_saver.add_delete(item)
+                else:
+                    item.delete()
 
         return updated_instances
 
@@ -265,7 +290,100 @@ class DeleteListReturnValueSerializer(serializers.Serializer):
     count = serializers.IntegerField(read_only=True)
 
 
-class NestedModelSerializer(serializers.ModelSerializer):
+class LazyInstanceSaver:
+    """LazyInstanceSaver bulk upserts deserialized model instances at the end of deserialization."""
+
+    def __init__(self):
+        self.upserts_by_serializer: Dict[serializers.Serializer, models.Model] = {}
+        self.deletes_by_model: Dict[Type[models.Model], models.Model] = {}
+
+    @classmethod
+    def create_in_context(cls, context: dict):
+        self = cls()
+        context["lazy_saver"] = self
+
+    @classmethod
+    def get_from_context(cls, context) -> "LazyInstanceSaver":
+        if saver := context.get("lazy_saver"):
+            return saver
+        raise ValueError("LazyInstanceSaver not found in serializer context.")
+
+    def add_upsert(self, serializer: serializers.Serializer, instance: models.Model):
+        """Add model instance to be saved later."""
+        instances = self.upserts_by_serializer.setdefault(serializer, [])
+        instances.append(instance)
+
+    def add_delete(self, instance: models.Model):
+        """Add model instance to be deleted later."""
+        instances = self.deletes_by_model.setdefault(instance.__class__, [])
+        instances.append(instance)
+
+    def save(self):
+        """Save added instances."""
+        # Perform bulk upsert for each serializer instance
+        for serializer, instances in self.upserts_by_serializer.items():
+            model: models.Model = serializer.Meta.model
+            concrete_fields = {
+                f.name for f in model._meta.get_fields() if f.concrete and not f.many_to_many
+            }
+            update_fields = [
+                f.source
+                for f in serializer._writable_fields
+                if f.source in concrete_fields and f.source != "id"
+            ]
+            model.objects.bulk_create(
+                instances,
+                update_conflicts=True,
+                update_fields=update_fields,
+                unique_fields=["id"],
+            )
+
+        # Perform bulk delete for each model
+        for model, instances in self.deletes_by_model.items():
+            model.objects.filter(id__in=[i.id for i in instances]).delete()
+
+
+class LazyableModelSerializer(serializers.ModelSerializer):
+    """LazyableModelSerializer allows model instances to be bulk upserted at end of serialization.
+
+    When lazy is True, creating or updating an instance does not save the instance to
+    the database. Instead, the instance is added to the LazyInstanceSaver (created by
+    the root serializer) in the serializer context.
+
+    Lazy instances have several restrictions, including:
+    - Saving a ForeignKey to a lazy instance requires a transaction
+    - Lazy instances are not actually in the database until end of transaction
+    - Model.save is not called for lazy instances
+    - Save signals are not sent for lazy instances
+
+    Lazy serializers may contain non-lazy nested serializer fields.
+    """
+
+    def __init__(self, *args, lazy=False, **kwargs):
+        # Lazy serializer does not save the created or updated instance
+        # but passes the instances to a LazyInstanceSaver from context.
+        self.lazy = lazy
+        super().__init__(*args, **kwargs)
+
+    def create(self, validated_data):
+        if self.lazy:
+            saver = LazyInstanceSaver.get_from_context(self.context)
+            instance = self.Meta.model(**validated_data)
+            saver.add_upsert(self, instance)  # Instance will be saved later
+            return instance
+
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if self.lazy:
+            saver = LazyInstanceSaver.get_from_context(self.context)
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            saver.add_upsert(self, instance)  # Instance will be saved later
+        return super().update(instance, validated_data)
+
+
+class NestedModelSerializer(LazyableModelSerializer):
     """Serializer for nested models.
 
     Calls create or update methods for nested serializer fields
@@ -291,8 +409,13 @@ class NestedModelSerializer(serializers.ModelSerializer):
         self.forward_serializers = {}
         self.reverse_serializers = {}
         self.many_serializers = {}
+        self.lazy_serializers = {}
 
         for name, field in self.fields.items():
+            actual_field = getattr(field, "child", None) or field
+            if getattr(actual_field, "lazy", False):
+                self.lazy_serializers[name] = field
+
             is_nested_serializer = (
                 isinstance(field, serializers.BaseSerializer)
                 and (field.source in self.model_field_info.relations)
@@ -387,8 +510,26 @@ class NestedModelSerializer(serializers.ModelSerializer):
                 )
             setattr(related_instance, reverse_field.name, None)
             related_instance.save(update_fields=[reverse_field.name])
-        related_instance.delete()  # May be soft delete
+        if serializer.lazy:
+            LazyInstanceSaver.get_from_context(self.context).add_delete(related_instance)
+        else:
+            related_instance.delete()  # May be soft delete
         return None
+
+    def check_lazy_transaction(self):
+        """Warn if save is called outside a transaction if there are lazy serializer fields.
+
+        Django foreign key contraints are created with DEFERRABLE INITIALLY DEFERRED,
+        which means they are not checked until the end of the transaction. This means
+        saving a foreign key to an unsaved instance will work as long as the instance
+        gets saved before the transaction ends.
+        """
+        if self.lazy_serializers and transaction.get_autocommit():
+            fields = ", ".join(self.lazy_serializers)
+            logger.warning(
+                f"{self.__class__.__name__} has lazy serializer fields ({fields}) "
+                "and should update in a transaction."
+            )
 
     def update_related(self, nested_serializers, instance, related_data):
         """Update related model instances."""
@@ -434,6 +575,10 @@ class NestedModelSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
+        self.check_lazy_transaction()
+        if self.parent is None:  # Root serializer handles lazy save
+            LazyInstanceSaver.create_in_context(self.context)
+
         related_data = self.pop_related_data(validated_data)
 
         # Create forward related objects
@@ -454,14 +599,25 @@ class NestedModelSerializer(serializers.ModelSerializer):
 
         # Assign many-to-many relations
         for source, related_instance in many_instances.items():
-            is_many_to_many = self.model_field_info.relations[source].to_field is None
+            if not related_instance:
+                # Ignore empty list because the m2m relation should already
+                # be empty for a newly created object
+                continue
+            model_field = self.model_field_info.relations[source].model_field
+            is_many_to_many = model_field and model_field.many_to_many
             if is_many_to_many:
-                model_field = getattr(instance, source)
-                model_field.set(related_instance)
+                instance_field = getattr(instance, source)
+                instance_field.set(related_instance)
 
+        if self.parent is None:  # Root serializer handles lazy save
+            LazyInstanceSaver.get_from_context(self.context).save()
         return instance
 
     def update(self, instance, validated_data):
+        self.check_lazy_transaction()
+        if self.parent is None:  # Root serializer handles lazy save
+            LazyInstanceSaver.create_in_context(self.context)
+
         related_data = self.pop_related_data(validated_data)
 
         # Update forward related objects
@@ -477,17 +633,23 @@ class NestedModelSerializer(serializers.ModelSerializer):
             self.many_serializers, instance=instance, related_data=related_data
         )
         for source, related_instance in many_instances.items():
-            model_field = getattr(instance, source)
-            model_field.set(related_instance)  # Assign new relations
+            model_field = self.model_field_info.relations[source].model_field
+            is_many_to_many = model_field and model_field.many_to_many
+            if is_many_to_many:
+                instance_field = getattr(instance, source)
+                instance_field.set(related_instance)
 
         # Update instance, assign forward one-to-one and many-to-one relations
         instance = super().update(
             instance=instance, validated_data={**validated_data, **forward_instances}
         )
+
+        if self.parent is None:  # Root serializer handles lazy save
+            LazyInstanceSaver.get_from_context(self.context).save()
         return instance
 
 
-class CommonModelSerializer(PatchModelSerializer, serializers.ModelSerializer):
+class CommonModelSerializer(PatchModelSerializer, LazyableModelSerializer):
     """ModelSerializer for behavior common for all model APIs."""
 
     serializer_field_mapping = {
@@ -512,6 +674,32 @@ class CommonModelSerializer(PatchModelSerializer, serializers.ModelSerializer):
                 if not self.context.get("show_emails"):
                     continue
             yield field
+
+    def preprocess(self, data):
+        """Call preprocess method of nested fields where available.
+
+        The preprocess step is an extra step before to_internal_value
+        that allows a field to e.g. collect all required reference data identifiers
+        in preprocess and then get the data in a single query in to_internal_value.
+        """
+        if data is None:
+            return
+
+        if not isinstance(data, Mapping):
+            message = self.error_messages["invalid"].format(datatype=type(data).__name__)
+            raise ValidationError({api_settings.NON_FIELD_ERRORS_KEY: [message]}, code="invalid")
+        fields = self._writable_fields
+        for field in fields:
+            # Check for preprocess method, call it with field value
+            if preprocess := getattr(field, "preprocess", None):
+                primitive_value = field.get_value(data)
+                if primitive_value is not empty:
+                    preprocess(primitive_value)
+
+    def to_internal_value(self, data):
+        if not self.parent:  # Root serializer calls preprocess
+            self.preprocess(data)
+        return super().to_internal_value(data)
 
     def create(self, validated_data):
         instance = super().create(validated_data)

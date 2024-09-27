@@ -182,7 +182,6 @@ class LegacyCompatibility:
         invalid = self.legacy_dataset.invalid_legacy_values or {}
 
         wkt_re = re.compile(r".*as_wkt\[\d+\]$")
-        from apps.core.models import Dataset
 
         data["state"] = str(data["state"])  # Convert Dataset.StateChoices to str
 

@@ -46,4 +46,6 @@ __all__ = [
     "PreservationModelSerializer",
     "ProjectModelSerializer",
     "ProvenanceModelSerializer",
+    "DatasetPermissionsSerializer",
+    "DatasetPermissionsUserModelSerializer",
 ]

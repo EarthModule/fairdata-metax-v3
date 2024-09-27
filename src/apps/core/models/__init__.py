@@ -81,4 +81,5 @@ __all__ = [
     "Preservation",
     "Provenance",
     "ProvenanceVariable",
+    "DatasetMetrics",
 ]

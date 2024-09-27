@@ -17,7 +17,6 @@ from apps.core.serializers.common_serializers import (
 from apps.core.serializers.concept_serializers import SpatialModelSerializer
 from apps.core.serializers.dataset_actor_serializers import DatasetActorSerializer
 from apps.core.serializers.dataset_allowed_actions import DatasetAllowedActionsSerializer
-from apps.core.serializers.dataset_files_serializer import FileSetSerializer
 from apps.core.serializers.dataset_serializer import DatasetSerializer, LinkedDraftSerializer
 from apps.core.serializers.metadata_provider_serializer import MetadataProviderModelSerializer
 from apps.core.serializers.preservation_serializers import PreservationModelSerializer

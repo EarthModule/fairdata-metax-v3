@@ -1,12 +1,9 @@
-import json
 import logging
 
 import requests
-from django.conf import settings
 from django.db import models
 from django.db.models.functions import Cast
 from django.utils import timezone
-from django.utils.translation import gettext as _
 
 from apps.common.helpers import is_valid_uuid
 from apps.common.models import AbstractBaseModel

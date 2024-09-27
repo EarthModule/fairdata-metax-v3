@@ -1,13 +1,11 @@
 import json
 import logging
-from datetime import date, datetime
 from typing import List
 
 import requests
 import urllib3
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models.signals import m2m_changed, post_delete, pre_delete
 from django.dispatch import Signal, receiver
 from rest_framework import exceptions, status
 

@@ -1,14 +1,9 @@
-import uuid
-from typing import TYPE_CHECKING
 
 from django.db import models
 
 from apps.common.history import SnapshotHistoricalRecords
 from apps.common.models import AbstractBaseModel
 from apps.users.models import MetaxUser
-
-if TYPE_CHECKING:
-    from apps.core.models import Dataset
 
 
 class PermissionRole(models.TextChoices):

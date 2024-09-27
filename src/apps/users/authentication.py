@@ -91,7 +91,7 @@ class SSOAuthentication(authentication.SessionAuthentication):
         except jwt.exceptions.DecodeError as e:
             logger.error(f"Authentication failed: {e}")
             raise exceptions.AuthenticationFailed(e)
-        except jwt.exceptions.ExpiredSignatureError as e:
+        except jwt.exceptions.ExpiredSignatureError:
             logger.warning("Signature expired, ignoring SSO token")
             return None, None
 

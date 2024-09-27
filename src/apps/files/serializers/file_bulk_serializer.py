@@ -13,7 +13,6 @@ from django.db.models import F, prefetch_related_objects
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
-from rest_framework.settings import api_settings
 
 from apps.common.helpers import get_technical_metax_user
 from apps.common.serializers import StrictSerializer

@@ -26,4 +26,6 @@ __all__ = [
     "Funding",
     "RemoteResource",
     "Temporal",
+    "DatasetMetrics",
+    "DatasetPermissions",
 ]

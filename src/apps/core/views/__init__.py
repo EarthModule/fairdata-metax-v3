@@ -14,4 +14,6 @@ __all__ = [
     "LegacyDatasetViewSet",
     "ContractViewSet",
     "PreservationViewSet",
+    "DatasetPermissionsEditorsViewSet",
+    "DatasetPermissionsViewSet",
 ]

@@ -1,7 +1,6 @@
 import json
 import logging
 from datetime import date, datetime
-from typing import List
 
 import requests
 import urllib3
@@ -12,7 +11,6 @@ from django.dispatch import Signal, receiver
 from rest_framework import exceptions, status
 
 from apps.core.models import Dataset, FileSet
-from apps.core.models.file_metadata import FileSetDirectoryMetadata, FileSetFileMetadata
 from apps.files.models import File
 from apps.files.signals import pre_files_deleted
 

@@ -1,11 +1,6 @@
-import logging
-from argparse import ArgumentParser
 from dataclasses import dataclass
 from typing import Callable, List, Optional
 
-import requests
-from cachalot.api import cachalot_disabled
-from django.core.management.base import BaseCommand
 from django.utils import timezone
 from isodate import parse_datetime
 from rest_framework import serializers

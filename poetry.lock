@@ -825,17 +825,15 @@ Django = ">=2.1"
 
 [[package]]
 name = "django-rest-knox"
-version = "4.2.0"
+version = "5.0.1"
 description = "Authentication for django rest framework"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "django-rest-knox-4.2.0.tar.gz", hash = "sha256:4595f1dc23d6e41af7939e5f2d8fdaf6ade0a74a656218e7b56683db5566fcc9"},
-    {file = "django_rest_knox-4.2.0-py3-none-any.whl", hash = "sha256:62b8e374a44cd4e9617eaefe27c915b301bf224fa6550633d3013d3f9f415113"},
+    {file = "django-rest-knox-5.0.1.tar.gz", hash = "sha256:69833d348d95a2af09671ce5d1cf2fb40e6a3299aba6a204f5bbc95caa957fd4"},
 ]
 
 [package.dependencies]
-cryptography = "*"
 django = ">=3.2"
 djangorestframework = "*"
 
@@ -2998,4 +2996,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.0,<3.12.0"
-content-hash = "7ad428356e3f8d3933ac869d2ee0098738501a33c0c9801f7ec983cb26ff1e6b"
+content-hash = "cd8bdf33afebecb79a0fb59c224dbc03188e8b25eeb294bd36eb633c3c4b53da"

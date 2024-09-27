@@ -1,8 +1,6 @@
-import re
 
 import pytest
 from django.db.models import F
-from django.utils.dateparse import parse_datetime
 from tests.utils import matchers
 from tests.utils.utils import assert_same_datetime
 
@@ -189,13 +187,13 @@ def test_sync_batch_remove_files(admin_client, mock_v2_files_integration):
     removed = File.all_objects.get(filename="testfile1.txt").removed.isoformat()
     post_data = mock_v2_files_integration["sync_mock"].request_history[1].json()
     assert post_data[0]["identifier"] == "file_testfile1.txt"
-    assert post_data[0]["removed"] == True
+    assert post_data[0]["removed"] is True
     assert_same_datetime(post_data[0]["date_removed"], removed)
     assert_same_datetime(post_data[0]["file_deleted"], removed)
 
     removed = File.all_objects.get(filename="testfile2.txt").removed.isoformat()
     assert post_data[1]["identifier"] == "file_testfile2.txt"
-    assert post_data[1]["removed"] == True
+    assert post_data[1]["removed"] is True
     assert_same_datetime(post_data[1]["date_removed"], removed)
     assert_same_datetime(post_data[1]["file_deleted"], removed)
 

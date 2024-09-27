@@ -207,7 +207,7 @@ def test_dataset_get_dataset_with_files_with_file_types(
     admin_client, deep_file_tree, dataset_json_with_files_with_file_types
 ):
     res = admin_client.post(
-        f"/v3/datasets",
+        "/v3/datasets",
         dataset_json_with_files_with_file_types,
         content_type="application/json",
     )

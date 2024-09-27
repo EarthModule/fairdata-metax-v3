@@ -9,7 +9,7 @@ from rest_framework import serializers
 from apps.core import factories
 from apps.core.models import LegacyDataset
 from apps.core.models.legacy_compatibility import LegacyCompatibility
-from apps.files.models import File, FileStorage
+from apps.files.models import File
 
 logger = logging.getLogger(__name__)
 

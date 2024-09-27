@@ -1,7 +1,6 @@
 import logging
 from collections import Counter
 
-from django.db.models import prefetch_related_objects
 
 from apps.common.profiling import count_queries
 from apps.core import factories

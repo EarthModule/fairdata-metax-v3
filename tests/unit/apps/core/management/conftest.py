@@ -1,8 +1,5 @@
 import json
 import os
-import re
-import uuid
-from itertools import islice
 
 import pytest
 

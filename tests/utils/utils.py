@@ -5,7 +5,6 @@ from typing import Union
 from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework import exceptions, fields
 
-from apps.common.helpers import parse_date_or_datetime
 
 
 def _values_eql(a, b):

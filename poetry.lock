@@ -998,17 +998,17 @@ validation = ["swagger-spec-validator (>=2.1.0)"]
 
 [[package]]
 name = "elementpath"
-version = "4.4.0"
+version = "4.5.0"
 description = "XPath 1.0/2.0/3.0/3.1 parsers and selectors for ElementTree and lxml"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "elementpath-4.4.0-py3-none-any.whl", hash = "sha256:cda092281afe508ece1bf65373905b30196c9426f3730cfea46059e103a131bd"},
-    {file = "elementpath-4.4.0.tar.gz", hash = "sha256:dfc4b8ca3d87966dcb0df40b5b6d04a98f053683271930fad9e7fa000924dfb2"},
+    {file = "elementpath-4.5.0-py3-none-any.whl", hash = "sha256:a16438bcc6b2b3069dde204c1e105322378a108b28faea3055d1b294443babea"},
+    {file = "elementpath-4.5.0.tar.gz", hash = "sha256:affdc8de95af1a4c10d1d2ed79c6fa56b59c26c7fce64b73497569e9dea46998"},
 ]
 
 [package.extras]
-dev = ["Sphinx", "coverage", "flake8", "lxml", "lxml-stubs", "memory-profiler", "memray", "mypy", "tox", "xmlschema (>=2.0.0)"]
+dev = ["Sphinx", "coverage", "flake8", "lxml", "lxml-stubs", "memory-profiler", "memray", "mypy", "tox", "xmlschema (>=3.3.2)"]
 
 [[package]]
 name = "environs"
@@ -3000,4 +3000,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.0,<3.12.0"
-content-hash = "c55891e39fd6f3d56d400afbb8044f6849f417fdb40dd3a11435a423f1b2ee4e"
+content-hash = "4f785982307cfd818a8c3ceb7097d7e0dd745e4d06f12d61eb1613b92aadf92b"
